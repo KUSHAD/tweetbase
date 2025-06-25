@@ -2,10 +2,9 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tweetbase",
   "main": "src/index.ts",
-  "compatibility_date": "2025-06-25"
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
+  "compatibility_date": "2025-06-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },
