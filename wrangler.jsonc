@@ -4,10 +4,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-06-25",
   "compatibility_flags": ["nodejs_compat"],
-  "keep_vars": true,
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
+  "vars": {
+    "DATABASE_URL": "postgresql://service_owner:npg_ODpxeWZ13GcH@ep-blue-snow-a1cbh0fi-pooler.ap-southeast-1.aws.neon.tech/service?sslmode=require&channel_binding=require",
+    "ACCESS_TOKEN_SECRET": "Du/bVJWwuHy99jG7WbpVPiotpXjhE+znEDIqYGq8GKG+ofNo26AADTI6LpA=",
+    "REFRESH_TOKEN_SECRET": "EsMzy2+MHdKAArQz9rfkOgtNibE8YD3XBWD4RYP9ev3nD4WA9c0cX0Pats0=",
+  },
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
