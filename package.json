@@ -2,7 +2,6 @@
   "name": "tweetbase",
   "scripts": {
     "dev": "wrangler dev",
-    "predeploy": "eslint . --ext .ts,.tsx --fix && prettier --write .",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "prepare": "husky",
