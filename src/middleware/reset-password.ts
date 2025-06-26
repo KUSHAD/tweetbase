@@ -2,10 +2,10 @@ import { and, eq } from 'drizzle-orm';
 import { MiddlewareHandler } from 'hono';
 import { db } from '../db';
 import { users } from '../db/schema';
-import { decryptAccessToken, errorFormat } from '../lib/utils';
+import { decryptForgotPasswordToken, errorFormat } from '../lib/utils';
 import { authorizationSchema } from '../validators/auth';
 
-export const authMiddleware: MiddlewareHandler = async (c, next) => {
+export const resetPasswordMiddleware: MiddlewareHandler = async (c, next) => {
   const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return c.json({ message: 'Unauthorized' }, 401);
@@ -22,7 +22,9 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   try {
-    const payload = await decryptAccessToken(token);
+    const payload = await decryptForgotPasswordToken(token);
+
+    console.log(payload);
 
     if (!payload) return c.json({ message: 'Unauthorized' }, 401);
 

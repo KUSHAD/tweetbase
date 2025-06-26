@@ -8,7 +8,7 @@ import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 import router from './routes';
 
-const app = new Hono();
+const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 app.use('*', cors());
 app.use(

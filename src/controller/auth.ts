@@ -1,12 +1,29 @@
 import { zValidator } from '@hono/zod-validator';
 import bcrypt from 'bcryptjs';
-import { addDays } from 'date-fns';
+import { addDays, addMinutes } from 'date-fns';
 import { and, eq } from 'drizzle-orm';
 import { Context } from 'hono';
 import { db } from '../db';
-import { accounts, refreshTokens, users } from '../db/schema';
-import { errorFormat, generateAccessToken, generateRefreshToken } from '../lib/utils';
-import { loginSchema, logoutSchema, signupSchema } from '../validators/auth';
+import { accounts, refreshTokens, users, verificationTokens } from '../db/schema';
+import {
+  errorFormat,
+  generateAccessToken,
+  generateEmailVerificationToken,
+  generateForgotPasswordToken,
+  generatePasswordResetToken,
+  generateRefreshToken,
+  sendPasswordResetEmail as sendResetEmail,
+  sendVerificationEmail,
+  verifyEmailVerificationToken,
+} from '../lib/utils';
+import {
+  emailVerificationSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  logoutSchema,
+  resetPasswordSchema,
+  signupSchema,
+} from '../validators/auth';
 
 export const signup = zValidator('json', signupSchema, async (result, c) => {
   if (!result.success) {
@@ -94,8 +111,20 @@ export const signup = zValidator('json', signupSchema, async (result, c) => {
       expiresAt,
     });
 
+    const otp = await generateEmailVerificationToken();
+
+    await db.insert(verificationTokens).values({
+      token: otp,
+      userId: newUser[0].id,
+      accountId: newAccount[0].id,
+      expiresAt: addMinutes(new Date(), 60),
+      tokenType: 'EMAIL_VERIFICATION',
+    });
+
+    await sendVerificationEmail({ email, name: displayName }, otp);
+
     return c.json({
-      message: 'Signup successful',
+      message: 'Signup successful! Verify your email to complete the registration.',
       data: {
         refreshToken,
         accessToken,
@@ -375,3 +404,228 @@ export const me = async (c: Context) => {
     return c.json(errorFormat(error), 500);
   }
 };
+
+export const verifyEmail = zValidator('json', emailVerificationSchema, async (result, c) => {
+  if (!result.success) {
+    return c.json(errorFormat(result.error), 400);
+  }
+
+  const { token } = result.data;
+
+  try {
+    const authUser = c.get('authUser');
+    if (!authUser) {
+      return c.json({ message: 'Unauthorized' }, 401);
+    }
+
+    const verificationRecord = await db
+      .select({
+        id: verificationTokens.id,
+      })
+      .from(verificationTokens)
+      .where(
+        and(
+          eq(verificationTokens.token, token),
+          eq(verificationTokens.userId, authUser.userId),
+          eq(verificationTokens.accountId, authUser.accountId),
+          eq(verificationTokens.tokenType, 'EMAIL_VERIFICATION'),
+        ),
+      )
+      .limit(1);
+
+    if (!verificationRecord[0]) {
+      return c.json({ message: 'Invalid or expired verification token' }, 400);
+    }
+
+    const success = await verifyEmailVerificationToken(token);
+
+    if (!success) {
+      return c.json({ message: 'Invalid or expired verification token' }, 400);
+    }
+
+    await db
+      .update(accounts)
+      .set({ emailVerified: true })
+      .where(eq(accounts.id, authUser.accountId));
+
+    await db.delete(verificationTokens).where(eq(verificationTokens.id, verificationRecord[0].id));
+
+    return c.json({ message: 'Email verified successfully' });
+  } catch (error) {
+    return c.json(errorFormat(error), 500);
+  }
+});
+
+export const sendPasswordResetEmail = zValidator(
+  'json',
+  forgotPasswordSchema,
+  async (result, c) => {
+    if (!result.success) {
+      return c.json(errorFormat(result.error), 400);
+    }
+
+    const { identifier } = result.data;
+
+    try {
+      const userRecord = await db
+        .select({
+          userId: users.id,
+          displayName: users.displayName,
+          userName: users.userName,
+          avatarUrl: users.avatarUrl,
+          bio: users.bio,
+          website: users.website,
+          accountId: users.accountId,
+        })
+        .from(users)
+        .where(eq(users.userName, identifier))
+        .limit(1);
+
+      let user = userRecord[0];
+
+      let account;
+
+      if (!user) {
+        const accountRecord = await db
+          .select({
+            id: accounts.id,
+            passwordHash: accounts.passwordHash,
+            email: accounts.email,
+            accountType: accounts.accountType,
+          })
+          .from(accounts)
+          .where(eq(accounts.email, identifier))
+          .limit(1);
+
+        account = accountRecord[0];
+
+        if (!account) {
+          return c.json({ message: 'Invalid credentials' }, 401);
+        }
+
+        const userByAccount = await db
+          .select({
+            userId: users.id,
+            displayName: users.displayName,
+            userName: users.userName,
+            avatarUrl: users.avatarUrl,
+            bio: users.bio,
+            website: users.website,
+            accountId: users.accountId,
+          })
+          .from(users)
+          .where(eq(users.accountId, account.id))
+          .limit(1);
+
+        if (!userByAccount[0]) {
+          return c.json({ message: 'User not found for this account' }, 404);
+        }
+
+        user = userByAccount[0];
+      } else {
+        const accountRecord = await db
+          .select({
+            id: accounts.id,
+            passwordHash: accounts.passwordHash,
+            email: accounts.email,
+            accountType: accounts.accountType,
+          })
+          .from(accounts)
+          .where(eq(accounts.id, user.accountId))
+          .limit(1);
+
+        account = accountRecord[0];
+
+        if (!account) {
+          return c.json({ message: 'Account not found' }, 404);
+        }
+      }
+
+      const resetToken = await generateForgotPasswordToken({
+        userId: user.userId,
+        accountId: user.accountId,
+      });
+
+      const otp = await generatePasswordResetToken();
+
+      await db.insert(verificationTokens).values({
+        token: otp,
+        userId: user.userId,
+        accountId: user.accountId,
+        expiresAt: addMinutes(new Date(), 60),
+        tokenType: 'PASSWORD_RESET',
+      });
+
+      await sendResetEmail(
+        {
+          email: account.email,
+          name: user.displayName,
+        },
+        otp,
+      );
+
+      return c.json({
+        message: 'Password reset email sent successfully. Please check your inbox.',
+        data: {
+          resetToken,
+          user: {
+            userName: user.userName,
+            displayName: user.displayName,
+            email: account.email,
+          },
+        },
+      });
+    } catch (error) {
+      return c.json(errorFormat(error), 500);
+    }
+  },
+);
+
+export const resetPassword = zValidator('json', resetPasswordSchema, async (result, c) => {
+  if (!result.success) {
+    return c.json(errorFormat(result.error), 400);
+  }
+
+  const { token, password } = result.data;
+
+  try {
+    const authUser = c.get('authUser');
+    if (!authUser) {
+      return c.json({ message: 'Unauthorized' }, 401);
+    }
+
+    const verificationRecord = await db
+      .select({
+        id: verificationTokens.id,
+      })
+      .from(verificationTokens)
+      .where(
+        and(
+          eq(verificationTokens.token, token),
+          eq(verificationTokens.userId, authUser.userId),
+          eq(verificationTokens.accountId, authUser.accountId),
+          eq(verificationTokens.tokenType, 'PASSWORD_RESET'),
+        ),
+      )
+      .limit(1);
+
+    if (!verificationRecord[0]) {
+      return c.json({ message: 'Invalid or expired password reset token' }, 400);
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await db.update(accounts).set({ passwordHash }).where(eq(accounts.id, authUser.accountId));
+
+    await db.delete(verificationTokens).where(eq(verificationTokens.id, verificationRecord[0].id));
+
+    return c.json({
+      message: 'Password reset successfully',
+      data: {
+        user: authUser,
+      },
+    });
+  } catch (error) {
+    return c.json(errorFormat(error), 500);
+  }
+});

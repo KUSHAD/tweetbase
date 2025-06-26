@@ -1,13 +1,15 @@
 import { createId } from '@paralleldrive/cuid2';
-import { pgEnum, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { boolean, pgEnum, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 export const accountType = pgEnum('account_type', ['PUBLIC', 'PRIVATE']);
+export const tokenType = pgEnum('token_type', ['EMAIL_VERIFICATION', 'PASSWORD_RESET']);
 
 export const accounts = pgTable('accounts', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
   email: text('email').notNull().unique(),
+  emailVerified: boolean('email_verified').default(false),
   passwordHash: text('password_hash').notNull(),
   accountType: accountType('account_type').default('PUBLIC'),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
@@ -47,6 +49,22 @@ export const refreshTokens = pgTable('refresh_tokens', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   token: text('token').notNull().unique(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
+  expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
+});
+
+export const verificationTokens = pgTable('verification_tokens', {
+  id: text('id')
+    .$defaultFn(() => createId())
+    .primaryKey(),
+  accountId: text('account_id')
+    .notNull()
+    .references(() => accounts.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  token: text('token').notNull(),
+  tokenType: tokenType('token_type').notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
