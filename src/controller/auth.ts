@@ -74,11 +74,7 @@ export const signup = zValidator('json', signupSchema, async (res, c) => {
       data: {
         accessToken,
         refreshToken,
-        user: {
-          ...user,
-          email: acc.email,
-          accountType: acc.accountType,
-        },
+        user,
       },
     });
   } catch (e) {
@@ -129,11 +125,7 @@ export const login = zValidator('json', loginSchema, async (res, c) => {
       data: {
         accessToken,
         refreshToken,
-        user: {
-          ...user,
-          email: acc.email,
-          accountType: acc.accountType,
-        },
+        user,
       },
     });
   } catch (e) {

@@ -3,7 +3,7 @@ import { addDays } from 'date-fns';
 import { and, eq, gt } from 'drizzle-orm';
 import { Context } from 'vm';
 import { db } from '../db';
-import { saasAccounts, saasSessions, saasUsers } from '../db/schema';
+import { saasSessions, saasUsers } from '../db/schema';
 import { errorFormat, generateAccessToken, generateRefreshToken } from '../lib/utils';
 import { logoutSchema } from '../validators/auth';
 import { revokeSessionSchema } from '../validators/session';
@@ -13,24 +13,7 @@ export const me = async (c: Context) => {
   if (!authUser) return c.json({ message: 'Unauthorized' }, 401);
 
   try {
-    const [row] = await db
-      .select({
-        id: saasUsers.id,
-        displayName: saasUsers.displayName,
-        userName: saasUsers.userName,
-        avatarUrl: saasUsers.avatarUrl,
-        bio: saasUsers.bio,
-        website: saasUsers.website,
-        email: saasAccounts.email,
-        accountType: saasAccounts.accountType,
-        emailVerified: saasAccounts.emailVerified,
-      })
-      .from(saasUsers)
-      .innerJoin(
-        saasAccounts,
-        and(eq(saasUsers.accountId, saasAccounts.id), eq(saasAccounts.id, authUser.accountId)),
-      )
-      .where(eq(saasUsers.id, authUser.userId));
+    const [row] = await db.select().from(saasUsers).where(eq(saasUsers.id, authUser.userId));
 
     if (!row) return c.json({ message: 'User not found' }, 404);
     return c.json({ message: 'Profile', data: row });
@@ -123,8 +106,6 @@ export const revokeSession = zValidator('param', revokeSessionSchema, async (res
         ),
       )
       .limit(1);
-
-    console.log(session);
 
     if (!session) return c.json({ message: 'Session not found' }, 404);
 
