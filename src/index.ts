@@ -42,4 +42,18 @@ app.get(
 // 🛣️ Mount all application routes
 app.route('/', router);
 
+app.notFound((c) => c.json({ error: 'Not Found', method: c.req.method, path: c.req.path }, 404));
+
+app.onError((err, c) => {
+  console.error(err);
+  return c.json(
+    {
+      error: 'Server Error',
+      message: err.message,
+      stack: err.stack,
+    },
+    500,
+  );
+});
+
 export default app;
