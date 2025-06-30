@@ -4,14 +4,19 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-06-25",
   "compatibility_flags": ["nodejs_compat"],
+  "dev": {
+    "port": 3000,
+  },
   "vars": {
-    "DATABASE_URL": "postgresql://service_owner:npg_ODpxeWZ13GcH@ep-blue-snow-a1cbh0fi-pooler.ap-southeast-1.aws.neon.tech/service?sslmode=require&channel_binding=require",
+    "DATABASE_URL": "postgresql://app_owner:npg_wmYE4f0JLBCV@ep-snowy-bird-a1bb5ddc-pooler.ap-southeast-1.aws.neon.tech/app?sslmode=require&channel_binding=require",
     "ACCESS_TOKEN_SECRET": "Du/bVJWwuHy99jG7WbpVPiotpXjhE+znEDIqYGq8GKG+ofNo26AADTI6LpA=",
     "REFRESH_TOKEN_SECRET": "EsMzy2+MHdKAArQz9rfkOgtNibE8YD3XBWD4RYP9ev3nD4WA9c0cX0Pats0=",
     "MAILERSEND_API_KEY": "mlsn.8ba775523a0003493b2a416fe4542cea817905370875f7ee8ad0b954e49a1921",
     "EMAIL_VERIFICATION_SECRET": "amyS12wRnJNiDFdRl9HEQ8dKnm7i+pUftN4OCbCj7z/FuOKu8VfyG6u95Hw=",
     "FORGOT_PASSWORD_SECRET": "laypEWHIf7FQDSmfCiOIhTjWzE8w9+zV19NG0I/j15tYeNufFSk8ePSWUGA=",
     "FORGOT_PASSWORD_TOKEN_SECRET": "rNHBk/2PutuexxzIa2rKrfkguNdkYhcVlONHVkU1G14S1+JHyyLztcsm1io=",
+    "REDIS_URL": "https://glowing-sailfish-53836.upstash.io",
+    "REDIS_TOKEN": "AdJMAAIjcDE5NDk4YjIwMTJlOTQ0YzBlOWY0ZWFiZTFiMjgxM2QwNHAxMA",
   },
   // "kv_namespaces": [
   //   {

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@hono-rate-limiter/redis':
+        specifier: ^0.1.4
+        version: 0.1.4(hono-rate-limiter@0.4.2(hono@4.8.3))
       '@hono/zod-validator':
         specifier: ^0.7.0
         version: 0.7.0(hono@4.8.3)(zod@3.25.67)
@@ -20,6 +23,9 @@ importers:
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
         version: 2.2.2
+      '@upstash/redis':
+        specifier: ^1.35.0
+        version: 1.35.0
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.2
@@ -31,10 +37,13 @@ importers:
         version: 16.5.0
       drizzle-orm:
         specifier: ^0.44.2
-        version: 0.44.2(@neondatabase/serverless@1.0.1)(@types/pg@8.15.4)
+        version: 0.44.2(@neondatabase/serverless@1.0.1)(@types/pg@8.15.4)(@upstash/redis@1.35.0)
       hono:
         specifier: ^4.8.3
         version: 4.8.3
+      hono-rate-limiter:
+        specifier: ^0.4.2
+        version: 0.4.2(hono@4.8.3)
       jose:
         specifier: ^6.0.11
         version: 6.0.11
@@ -485,6 +494,11 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
+  '@hono-rate-limiter/redis@0.1.4':
+    resolution: {integrity: sha512-RSrVX5N2Oo/xXApskegu667cBVHyr8RXGWnbRDGjU2py8pN4BttEKSHA0iKi3BAwh1xSkENgDRng4tpFD9DbKg==}
+    peerDependencies:
+      hono-rate-limiter: ^0.2.1
+
   '@hono/eslint-config@2.0.2':
     resolution: {integrity: sha512-nTns02uT8/1KOp10cfMo7JHM7euLPtprmZMDdKQqASSuJfrGka5kn65e8G2Ra291vIi5fGBkhCMWdabSkLUihw==}
     peerDependencies:
@@ -856,6 +870,9 @@ packages:
     resolution: {integrity: sha512-ryoo+EB19lMxAd80ln9BVf8pdOAxLb97amrQ3SFN9OCRn/5M5wvwDgAe4i8ZjhpbiHoDeP8yavcTEnpKBo7lZg==}
     cpu: [x64]
     os: [win32]
+
+  '@upstash/redis@1.35.0':
+    resolution: {integrity: sha512-WUm0Jz1xN4DBDGeJIi2Y0kVsolWRB2tsVds4SExaiLg4wBdHFMB+8IfZtBWr+BP0FvhuBr5G1/VLrJ9xzIWHsg==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -1375,6 +1392,11 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
+  hono-rate-limiter@0.4.2:
+    resolution: {integrity: sha512-AAtFqgADyrmbDijcRTT/HJfwqfvhalya2Zo+MgfdrMPas3zSMD8SU03cv+ZsYwRU1swv7zgVt0shwN059yzhjw==}
+    peerDependencies:
+      hono: ^4.1.1
+
   hono@4.8.3:
     resolution: {integrity: sha512-jYZ6ZtfWjzBdh8H/0CIFfCBHaFL75k+KMzaM177hrWWm2TWL39YMYaJgB74uK/niRc866NMlH9B8uCvIo284WQ==}
     engines: {node: '>=16.9.0'}
@@ -1790,6 +1812,9 @@ packages:
   ufo@1.6.1:
     resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
 
+  uncrypto@0.1.3:
+    resolution: {integrity: sha512-Ql87qFHB3s/De2ClA9e0gsnS6zXG27SkTiSJwjCc9MebbfapQfuPzumMIUMi38ezPZVNFcHI9sUIepeQfw8J8Q==}
+
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
@@ -2128,6 +2153,10 @@ snapshots:
       levn: 0.4.1
 
   '@fastify/busboy@2.1.1': {}
+
+  '@hono-rate-limiter/redis@0.1.4(hono-rate-limiter@0.4.2(hono@4.8.3))':
+    dependencies:
+      hono-rate-limiter: 0.4.2(hono@4.8.3)
 
   '@hono/eslint-config@2.0.2(@typescript-eslint/utils@8.35.0(eslint@9.29.0)(typescript@5.8.3))(eslint@9.29.0)(typescript@5.8.3)':
     dependencies:
@@ -2478,6 +2507,10 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.9.2':
     optional: true
 
+  '@upstash/redis@1.35.0':
+    dependencies:
+      uncrypto: 0.1.3
+
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
       acorn: 8.15.0
@@ -2600,10 +2633,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.2(@neondatabase/serverless@1.0.1)(@types/pg@8.15.4):
+  drizzle-orm@0.44.2(@neondatabase/serverless@1.0.1)(@types/pg@8.15.4)(@upstash/redis@1.35.0):
     optionalDependencies:
       '@neondatabase/serverless': 1.0.1
       '@types/pg': 8.15.4
+      '@upstash/redis': 1.35.0
 
   dunder-proto@1.0.1:
     dependencies:
@@ -2963,6 +2997,10 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
+
+  hono-rate-limiter@0.4.2(hono@4.8.3):
+    dependencies:
+      hono: 4.8.3
 
   hono@4.8.3: {}
 
@@ -3355,6 +3393,8 @@ snapshots:
   typescript@5.8.3: {}
 
   ufo@1.6.1: {}
+
+  uncrypto@0.1.3: {}
 
   undici-types@6.21.0: {}
 

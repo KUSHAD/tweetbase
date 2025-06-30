@@ -1,7 +1,7 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { MiddlewareHandler } from 'hono';
 import { db } from '../db';
-import { users } from '../db/schema';
+import { saasSessions, saasUsers } from '../db/schema';
 import { decryptForgotPasswordToken, errorFormat } from '../lib/utils';
 import { authorizationSchema } from '../validators/auth';
 
@@ -12,9 +12,6 @@ export const resetPasswordMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   const token = authHeader.split(' ')[1];
-
-  console.log('Token:', token);
-
   const result = await authorizationSchema.safeParseAsync({ token });
 
   if (!result.success) {
@@ -23,24 +20,30 @@ export const resetPasswordMiddleware: MiddlewareHandler = async (c, next) => {
 
   try {
     const payload = await decryptForgotPasswordToken(token);
-
-    console.log(payload);
-
     if (!payload) return c.json({ message: 'Unauthorized' }, 401);
 
-    const userExists = await db
-      .select({
-        userId: users.id,
-        accountId: users.accountId,
-      })
-      .from(users)
-      .where(and(eq(users.id, payload.userId), eq(users.accountId, payload.accountId)))
+    const [user] = await db
+      .select({ userId: saasUsers.id, accountId: saasUsers.accountId })
+      .from(saasUsers)
+      .where(and(eq(saasUsers.id, payload.userId), eq(saasUsers.accountId, payload.accountId)));
+
+    if (!user) return c.json({ message: 'Unauthorized' }, 401);
+
+    const [session] = await db
+      .select()
+      .from(saasSessions)
+      .where(
+        and(
+          eq(saasSessions.userId, payload.userId),
+          eq(saasSessions.accountId, payload.accountId),
+          gt(saasSessions.expiresAt, new Date()),
+        ),
+      )
       .limit(1);
 
-    if (!userExists) return c.json({ message: 'Unauthorized' }, 401);
+    if (!session) return c.json({ message: 'Session expired or invalid' }, 401);
 
-    c.set('authUser', userExists[0]);
-
+    c.set('authUser', user);
     await next();
   } catch (e) {
     return c.json({ message: 'Invalid token' }, 401);

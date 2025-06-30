@@ -2,9 +2,10 @@ import { zValidator } from '@hono/zod-validator';
 import bcrypt from 'bcryptjs';
 import { addDays, addMinutes } from 'date-fns';
 import { and, eq } from 'drizzle-orm';
-import { Context } from 'hono';
+
 import { db } from '../db';
-import { accounts, refreshTokens, users, verificationTokens } from '../db/schema';
+import { saasAccounts, saasSessions, saasUsers, saasVerificationTokens } from '../db/schema';
+
 import {
   errorFormat,
   generateAccessToken,
@@ -12,10 +13,11 @@ import {
   generateForgotPasswordToken,
   generatePasswordResetToken,
   generateRefreshToken,
-  sendPasswordResetEmail as sendResetEmail,
+  sendPasswordResetEmail as sendPasswordResetEmailUtils,
   sendVerificationEmail,
   verifyEmailVerificationToken,
 } from '../lib/utils';
+
 import {
   emailVerificationSchema,
   forgotPasswordSchema,
@@ -25,98 +27,42 @@ import {
   signupSchema,
 } from '../validators/auth';
 
-export const signup = zValidator('json', signupSchema, async (result, c) => {
-  if (!result.success) {
-    return c.json(errorFormat(result.error), 400);
-  }
+export const signup = zValidator('json', signupSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+
+  const { displayName, userName, email, password } = res.data;
+
   try {
-    const { displayName, userName, email, password } = result.data;
+    const [uExists] = await db.select().from(saasUsers).where(eq(saasUsers.userName, userName));
+    if (uExists) return c.json({ message: 'Username exists' }, 400);
 
-    const userNameExists = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.userName, userName))
-      .limit(1);
-
-    if (userNameExists.length > 0) {
-      return c.json(
-        {
-          message: 'Username already exists',
-        },
-        400,
-      );
-    }
-
-    const emailExists = await db
-      .select({ id: accounts.id })
-      .from(accounts)
-      .where(eq(accounts.email, email))
-      .limit(1);
-
-    if (emailExists.length > 0) {
-      return c.json(
-        {
-          message: 'Email already exists',
-        },
-        400,
-      );
-    }
+    const [eExists] = await db.select().from(saasAccounts).where(eq(saasAccounts.email, email));
+    if (eExists) return c.json({ message: 'Email exists' }, 400);
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const [acc] = await db.insert(saasAccounts).values({ email, passwordHash }).returning();
+    const [user] = await db
+      .insert(saasUsers)
+      .values({ accountId: acc.id, displayName, userName })
+      .returning();
 
-    const newAccount = await db
-      .insert(accounts)
-      .values({
-        email,
-        passwordHash,
-      })
-      .returning({
-        id: accounts.id,
-        accountType: accounts.accountType,
-        email: accounts.email,
-      });
+    const accessToken = await generateAccessToken({ userId: user.id, accountId: acc.id });
+    const refreshToken = await generateRefreshToken({ userId: user.id, accountId: acc.id });
 
-    const newUser = await db
-      .insert(users)
-      .values({
-        accountId: newAccount[0].id,
-        displayName,
-        userName,
-      })
-      .returning({
-        id: users.id,
-        displayName: users.displayName,
-        userName: users.userName,
-        avatarUrl: users.avatarUrl,
-        bio: users.bio,
-        website: users.website,
-      });
-
-    const accessToken = await generateAccessToken({
-      userId: newUser[0].id,
-      accountId: newAccount[0].id,
-    });
-
-    const refreshToken = await generateRefreshToken({
-      userId: newUser[0].id,
-      accountId: newAccount[0].id,
-    });
-
-    const expiresAt = addDays(new Date(), 30);
-
-    await db.insert(refreshTokens).values({
-      token: refreshToken,
-      userId: newUser[0].id,
-      accountId: newAccount[0].id,
-      expiresAt,
+    await db.insert(saasSessions).values({
+      refreshToken,
+      userId: user.id,
+      accountId: acc.id,
+      ipAddress: c.req.header('x-forwarded-for') || '',
+      userAgent: c.req.header('user-agent') || '',
+      expiresAt: addDays(new Date(), 30),
     });
 
     const otp = await generateEmailVerificationToken();
-
-    await db.insert(verificationTokens).values({
+    await db.insert(saasVerificationTokens).values({
       token: otp,
-      userId: newUser[0].id,
-      accountId: newAccount[0].id,
+      userId: user.id,
+      accountId: acc.id,
       expiresAt: addMinutes(new Date(), 60),
       tokenType: 'EMAIL_VERIFICATION',
     });
@@ -124,508 +70,197 @@ export const signup = zValidator('json', signupSchema, async (result, c) => {
     await sendVerificationEmail({ email, name: displayName }, otp);
 
     return c.json({
-      message: 'Signup successful! Verify your email to complete the registration.',
+      message: 'Signup complete, verify email.',
       data: {
-        refreshToken,
         accessToken,
+        refreshToken,
         user: {
-          ...newUser[0],
-          email: newAccount[0].email,
-          accountType: newAccount[0].accountType,
+          ...user,
+          email: acc.email,
+          accountType: acc.accountType,
         },
       },
     });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
+  } catch (e) {
+    return c.json(errorFormat(e), 500);
   }
 });
 
-export const login = zValidator('json', loginSchema, async (result, c) => {
-  if (!result.success) {
-    return c.json(errorFormat(result.error), 400);
-  }
+export const login = zValidator('json', loginSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
 
-  const { identifier, password } = result.data;
+  const { identifier, password } = res.data;
 
   try {
-    const userRecord = await db
-      .select({
-        userId: users.id,
-        displayName: users.displayName,
-        userName: users.userName,
-        avatarUrl: users.avatarUrl,
-        bio: users.bio,
-        website: users.website,
-        accountId: users.accountId,
-      })
-      .from(users)
-      .where(eq(users.userName, identifier))
-      .limit(1);
+    let user: any;
+    let acc: any;
 
-    let user = userRecord[0];
-
-    let account;
-
-    if (!user) {
-      const accountRecord = await db
-        .select({
-          id: accounts.id,
-          passwordHash: accounts.passwordHash,
-          email: accounts.email,
-          accountType: accounts.accountType,
-        })
-        .from(accounts)
-        .where(eq(accounts.email, identifier))
-        .limit(1);
-
-      account = accountRecord[0];
-
-      if (!account) {
-        return c.json({ message: 'Invalid credentials' }, 401);
-      }
-
-      const userByAccount = await db
-        .select({
-          userId: users.id,
-          displayName: users.displayName,
-          userName: users.userName,
-          avatarUrl: users.avatarUrl,
-          bio: users.bio,
-          website: users.website,
-          accountId: users.accountId,
-        })
-        .from(users)
-        .where(eq(users.accountId, account.id))
-        .limit(1);
-
-      if (!userByAccount[0]) {
-        return c.json({ message: 'User not found for this account' }, 404);
-      }
-
-      user = userByAccount[0];
+    const [uByName] = await db.select().from(saasUsers).where(eq(saasUsers.userName, identifier));
+    if (uByName) {
+      user = uByName;
+      [acc] = await db.select().from(saasAccounts).where(eq(saasAccounts.id, user.accountId));
     } else {
-      const accountRecord = await db
-        .select({
-          id: accounts.id,
-          passwordHash: accounts.passwordHash,
-          email: accounts.email,
-          accountType: accounts.accountType,
-        })
-        .from(accounts)
-        .where(eq(accounts.id, user.accountId))
-        .limit(1);
-
-      account = accountRecord[0];
-
-      if (!account) {
-        return c.json({ message: 'Account not found' }, 404);
-      }
+      const [aByEmail] = await db
+        .select()
+        .from(saasAccounts)
+        .where(eq(saasAccounts.email, identifier));
+      if (!aByEmail) return c.json({ message: 'Invalid credentials' }, 401);
+      acc = aByEmail;
+      [user] = await db.select().from(saasUsers).where(eq(saasUsers.accountId, acc.id));
     }
 
-    const isMatch = await bcrypt.compare(password, account.passwordHash);
-    if (!isMatch) {
-      return c.json({ message: 'Invalid credentials' }, 401);
-    }
+    const match = await bcrypt.compare(password, acc.passwordHash);
+    if (!match) return c.json({ message: 'Invalid credentials' }, 401);
 
-    const accessToken = await generateAccessToken({
-      userId: user.userId,
-      accountId: account.id,
-    });
+    const accessToken = await generateAccessToken({ userId: user.id, accountId: acc.id });
+    const refreshToken = await generateRefreshToken({ userId: user.id, accountId: acc.id });
 
-    const refreshToken = await generateRefreshToken({
-      userId: user.userId,
-      accountId: account.id,
-    });
-
-    const expiresAt = addDays(new Date(), 30);
-
-    await db
-      .delete(refreshTokens)
-      .where(and(eq(refreshTokens.userId, user.userId), eq(refreshTokens.accountId, account.id)));
-
-    await db.insert(refreshTokens).values({
-      token: refreshToken,
-      userId: user.userId,
-      accountId: account.id,
-      expiresAt,
+    await db.insert(saasSessions).values({
+      refreshToken,
+      userId: user.id,
+      accountId: acc.id,
+      ipAddress: c.req.header('x-forwarded-for') || '',
+      userAgent: c.req.header('user-agent') || '',
+      expiresAt: addDays(new Date(), 30),
     });
 
     return c.json({
-      message: 'Login successful',
+      message: 'Login success',
       data: {
+        accessToken,
         refreshToken,
-        accessToken,
         user: {
-          id: user.userId,
-          displayName: user.displayName,
-          userName: user.userName,
-          avatarUrl: user.avatarUrl,
-          bio: user.bio,
-          website: user.website,
-          email: account.email,
-          accountType: account.accountType,
+          ...user,
+          email: acc.email,
+          accountType: acc.accountType,
         },
       },
     });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
+  } catch (e) {
+    return c.json(errorFormat(e), 500);
   }
 });
 
-export const logout = zValidator('json', logoutSchema, async (result, c) => {
-  if (!result.success) {
-    return c.json(errorFormat(result.error), 400);
-  }
-
-  const { refreshToken } = result.data;
+export const logout = zValidator('json', logoutSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+  const { refreshToken } = res.data;
 
   try {
-    const authUser = c.get('authUser');
+    await db.delete(saasSessions).where(eq(saasSessions.refreshToken, refreshToken));
+    return c.json({ message: 'Logout done' });
+  } catch (e) {
+    return c.json(errorFormat(e), 500);
+  }
+});
 
-    const tokenRecord = await db
+export const verifyEmail = zValidator('json', emailVerificationSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+  const { token } = res.data;
+
+  const authUser = c.get('authUser');
+  if (!authUser) return c.json({ message: 'Unauthorized' }, 401);
+
+  try {
+    const [vt] = await db
       .select()
-      .from(refreshTokens)
+      .from(saasVerificationTokens)
       .where(
         and(
-          eq(refreshTokens.token, refreshToken),
-          eq(refreshTokens.userId, authUser.userId),
-          eq(refreshTokens.accountId, authUser.accountId),
+          eq(saasVerificationTokens.token, token),
+          eq(saasVerificationTokens.userId, authUser.userId),
+          eq(saasVerificationTokens.accountId, authUser.accountId),
+          eq(saasVerificationTokens.tokenType, 'EMAIL_VERIFICATION'),
         ),
-      )
-      .limit(1);
-
-    if (!tokenRecord[0]) {
-      return c.json({ message: 'Invalid refresh token' }, 401);
-    }
-
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, tokenRecord[0].id));
-
-    return c.json({ message: 'Logout successful' });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
-});
-
-export const rotateRefreshToken = zValidator('json', logoutSchema, async (result, c) => {
-  if (!result.success) {
-    return c.json(errorFormat(result.error), 400);
-  }
-
-  const { refreshToken } = result.data;
-
-  try {
-    const tokenRecord = await db
-      .select()
-      .from(refreshTokens)
-      .where(eq(refreshTokens.token, refreshToken))
-      .limit(1);
-
-    if (!tokenRecord[0]) {
-      return c.json({ message: 'Invalid refresh token' }, 401);
-    }
-
-    const newRefreshToken = await generateRefreshToken({
-      userId: tokenRecord[0].userId,
-      accountId: tokenRecord[0].accountId,
-    });
-
-    const accessToken = await generateAccessToken({
-      userId: tokenRecord[0].userId,
-      accountId: tokenRecord[0].accountId,
-    });
-
-    const expiresAt = addDays(new Date(), 30);
-
-    await db.insert(refreshTokens).values({
-      token: newRefreshToken,
-      userId: tokenRecord[0].userId,
-      accountId: tokenRecord[0].accountId,
-      expiresAt,
-    });
-
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, tokenRecord[0].id));
-
-    return c.json({
-      message: 'Refresh token rotated successfully',
-      data: {
-        refreshToken: newRefreshToken,
-        accessToken,
-      },
-    });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
-});
-
-export const me = async (c: Context) => {
-  try {
-    const authUser = c.get('authUser');
-    if (!authUser) {
-      return c.json({ message: 'Unauthorized' }, 401);
-    }
-
-    const userRecord = await db
-      .select({
-        id: users.id,
-        displayName: users.displayName,
-        userName: users.userName,
-        avatarUrl: users.avatarUrl,
-        bio: users.bio,
-        website: users.website,
-        email: accounts.email,
-        accountType: accounts.accountType,
-      })
-      .from(users)
-      .where(eq(users.id, authUser.userId))
-      .innerJoin(
-        accounts,
-        and(eq(users.accountId, accounts.id), eq(accounts.id, authUser.accountId)),
-      )
-      .limit(1);
-
-    if (!userRecord[0]) {
-      return c.json({ message: 'User not found' }, 404);
-    }
-
-    return c.json({
-      message: 'Authorized User information retrieved successfully',
-      data: {
-        id: userRecord[0].id,
-        displayName: userRecord[0].displayName,
-        userName: userRecord[0].userName,
-        avatarUrl: userRecord[0].avatarUrl,
-        bio: userRecord[0].bio,
-        website: userRecord[0].website,
-        email: userRecord[0].email,
-        accountType: userRecord[0].accountType,
-      },
-    });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
-};
-
-export const verifyEmail = zValidator('json', emailVerificationSchema, async (result, c) => {
-  if (!result.success) {
-    return c.json(errorFormat(result.error), 400);
-  }
-
-  const { token } = result.data;
-
-  try {
-    const authUser = c.get('authUser');
-    if (!authUser) {
-      return c.json({ message: 'Unauthorized' }, 401);
-    }
-
-    const verificationRecord = await db
-      .select({
-        id: verificationTokens.id,
-      })
-      .from(verificationTokens)
-      .where(
-        and(
-          eq(verificationTokens.token, token),
-          eq(verificationTokens.userId, authUser.userId),
-          eq(verificationTokens.accountId, authUser.accountId),
-          eq(verificationTokens.tokenType, 'EMAIL_VERIFICATION'),
-        ),
-      )
-      .limit(1);
-
-    if (!verificationRecord[0]) {
-      return c.json({ message: 'Invalid or expired verification token' }, 400);
-    }
-
-    const success = await verifyEmailVerificationToken(token);
-
-    if (!success) {
-      return c.json({ message: 'Invalid or expired verification token' }, 400);
-    }
-
-    await db
-      .update(accounts)
-      .set({ emailVerified: true })
-      .where(eq(accounts.id, authUser.accountId));
-
-    await db.delete(verificationTokens).where(eq(verificationTokens.id, verificationRecord[0].id));
-
-    return c.json({ message: 'Email verified successfully' });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
-});
-
-export const sendPasswordResetEmail = zValidator(
-  'json',
-  forgotPasswordSchema,
-  async (result, c) => {
-    if (!result.success) {
-      return c.json(errorFormat(result.error), 400);
-    }
-
-    const { identifier } = result.data;
-
-    try {
-      const userRecord = await db
-        .select({
-          userId: users.id,
-          displayName: users.displayName,
-          userName: users.userName,
-          avatarUrl: users.avatarUrl,
-          bio: users.bio,
-          website: users.website,
-          accountId: users.accountId,
-        })
-        .from(users)
-        .where(eq(users.userName, identifier))
-        .limit(1);
-
-      let user = userRecord[0];
-
-      let account;
-
-      if (!user) {
-        const accountRecord = await db
-          .select({
-            id: accounts.id,
-            passwordHash: accounts.passwordHash,
-            email: accounts.email,
-            accountType: accounts.accountType,
-          })
-          .from(accounts)
-          .where(eq(accounts.email, identifier))
-          .limit(1);
-
-        account = accountRecord[0];
-
-        if (!account) {
-          return c.json({ message: 'Invalid credentials' }, 401);
-        }
-
-        const userByAccount = await db
-          .select({
-            userId: users.id,
-            displayName: users.displayName,
-            userName: users.userName,
-            avatarUrl: users.avatarUrl,
-            bio: users.bio,
-            website: users.website,
-            accountId: users.accountId,
-          })
-          .from(users)
-          .where(eq(users.accountId, account.id))
-          .limit(1);
-
-        if (!userByAccount[0]) {
-          return c.json({ message: 'User not found for this account' }, 404);
-        }
-
-        user = userByAccount[0];
-      } else {
-        const accountRecord = await db
-          .select({
-            id: accounts.id,
-            passwordHash: accounts.passwordHash,
-            email: accounts.email,
-            accountType: accounts.accountType,
-          })
-          .from(accounts)
-          .where(eq(accounts.id, user.accountId))
-          .limit(1);
-
-        account = accountRecord[0];
-
-        if (!account) {
-          return c.json({ message: 'Account not found' }, 404);
-        }
-      }
-
-      const resetToken = await generateForgotPasswordToken({
-        userId: user.userId,
-        accountId: user.accountId,
-      });
-
-      const otp = await generatePasswordResetToken();
-
-      await db.insert(verificationTokens).values({
-        token: otp,
-        userId: user.userId,
-        accountId: user.accountId,
-        expiresAt: addMinutes(new Date(), 60),
-        tokenType: 'PASSWORD_RESET',
-      });
-
-      await sendResetEmail(
-        {
-          email: account.email,
-          name: user.displayName,
-        },
-        otp,
       );
 
-      return c.json({
-        message: 'Password reset email sent successfully. Please check your inbox.',
-        data: {
-          resetToken,
-          user: {
-            userName: user.userName,
-            displayName: user.displayName,
-            email: account.email,
-          },
-        },
-      });
-    } catch (error) {
-      return c.json(errorFormat(error), 500);
-    }
-  },
-);
+    if (!vt) return c.json({ message: 'Invalid or expired token' }, 400);
 
-export const resetPassword = zValidator('json', resetPasswordSchema, async (result, c) => {
-  if (!result.success) {
-    return c.json(errorFormat(result.error), 400);
+    const isValid = await verifyEmailVerificationToken(token);
+    if (!isValid) return c.json({ message: 'Invalid or expired token' }, 400);
+
+    await db
+      .update(saasAccounts)
+      .set({ emailVerified: true })
+      .where(eq(saasAccounts.id, authUser.accountId));
+
+    await db.delete(saasVerificationTokens).where(eq(saasVerificationTokens.id, vt.id));
+
+    return c.json({ message: 'Email verified' });
+  } catch (e) {
+    return c.json(errorFormat(e), 500);
   }
+});
 
-  const { token, password } = result.data;
+export const sendPasswordResetEmail = zValidator('json', forgotPasswordSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+  const { identifier } = res.data;
 
   try {
-    const authUser = c.get('authUser');
-    if (!authUser) {
-      return c.json({ message: 'Unauthorized' }, 401);
+    let user: any, acc: any;
+
+    const [u] = await db.select().from(saasUsers).where(eq(saasUsers.userName, identifier));
+    if (u) {
+      user = u;
+      [acc] = await db.select().from(saasAccounts).where(eq(saasAccounts.id, user.accountId));
+    } else {
+      const [a] = await db.select().from(saasAccounts).where(eq(saasAccounts.email, identifier));
+      if (!a) return c.json({ message: 'Invalid credentials' }, 401);
+      acc = a;
+      [user] = await db.select().from(saasUsers).where(eq(saasUsers.accountId, acc.id));
     }
 
-    const verificationRecord = await db
-      .select({
-        id: verificationTokens.id,
-      })
-      .from(verificationTokens)
+    const otp = await generatePasswordResetToken();
+    await db.insert(saasVerificationTokens).values({
+      token: otp,
+      userId: user.id,
+      accountId: acc.id,
+      expiresAt: addMinutes(new Date(), 60),
+      tokenType: 'PASSWORD_RESET',
+    });
+
+    const resetToken = await generateForgotPasswordToken({
+      userId: u.id,
+      accountId: u.accountId,
+    });
+
+    await sendPasswordResetEmailUtils({ email: acc.email, name: user.displayName }, otp);
+    return c.json({ message: 'Check your inbox to reset password', resetToken });
+  } catch (e) {
+    return c.json(errorFormat(e), 500);
+  }
+});
+
+export const resetPassword = zValidator('json', resetPasswordSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+  const { token, password } = res.data;
+  const authUser = c.get('authUser');
+  if (!authUser) return c.json({ message: 'Unauthorized' }, 401);
+
+  try {
+    const [vt] = await db
+      .select()
+      .from(saasVerificationTokens)
       .where(
         and(
-          eq(verificationTokens.token, token),
-          eq(verificationTokens.userId, authUser.userId),
-          eq(verificationTokens.accountId, authUser.accountId),
-          eq(verificationTokens.tokenType, 'PASSWORD_RESET'),
+          eq(saasVerificationTokens.token, token),
+          eq(saasVerificationTokens.userId, authUser.userId),
+          eq(saasVerificationTokens.accountId, authUser.accountId),
+          eq(saasVerificationTokens.tokenType, 'PASSWORD_RESET'),
         ),
-      )
-      .limit(1);
+      );
 
-    if (!verificationRecord[0]) {
-      return c.json({ message: 'Invalid or expired password reset token' }, 400);
-    }
+    if (!vt) return c.json({ message: 'Invalid or expired reset token' }, 400);
 
     const passwordHash = await bcrypt.hash(password, 10);
+    await db
+      .update(saasAccounts)
+      .set({ passwordHash })
+      .where(eq(saasAccounts.id, authUser.accountId));
 
-    await db.update(accounts).set({ passwordHash }).where(eq(accounts.id, authUser.accountId));
+    await db.delete(saasVerificationTokens).where(eq(saasVerificationTokens.id, vt.id));
 
-    await db.delete(verificationTokens).where(eq(verificationTokens.id, verificationRecord[0].id));
-
-    return c.json({
-      message: 'Password reset successfully',
-      data: {
-        user: authUser,
-      },
-    });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
+    return c.json({ message: 'Password updated' });
+  } catch (e) {
+    return c.json(errorFormat(e), 500);
   }
 });

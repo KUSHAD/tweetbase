@@ -2,9 +2,7 @@ import { Hono } from 'hono';
 import {
   login,
   logout,
-  me,
   resetPassword,
-  rotateRefreshToken,
   sendPasswordResetEmail,
   signup,
   verifyEmail,
@@ -17,8 +15,6 @@ const authRouter = new Hono();
 authRouter.post('/signup', signup);
 authRouter.post('/login', login);
 authRouter.post('/logout', authMiddleware, logout);
-authRouter.post('/refresh', rotateRefreshToken);
-authRouter.get('/me', authMiddleware, me);
 authRouter.post('/email-verification', authMiddleware, verifyEmail);
 authRouter.post('/forgot-password', sendPasswordResetEmail);
 authRouter.post('/reset-password', resetPasswordMiddleware, resetPassword);
