@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
 
 export const revokeSessionSchema = z.object({
-  id: z.string().cuid2().describe('Session ID to revoke'),
+  id: z.cuid2().describe('Session ID to revoke'),
 });

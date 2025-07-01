@@ -1,11 +1,12 @@
 import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { saasUsers } from '../db/schema';
+import { saasAccounts, saasUsers } from '../db/schema';
 import { utapi } from '../lib/uploadthing';
 import { errorFormat } from '../lib/utils';
 import {
   profileSearchSchema,
+  updateAccountTypeSchema,
   updateAvatarSchema,
   updateBasicInfoSchema,
   updateUsernameSchema,
@@ -154,6 +155,42 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
     }
 
     return c.json({ message: 'Avatar Uploaded Succesfully!', user });
+  } catch (err) {
+    return c.json(errorFormat(err), 500);
+  }
+});
+
+export const updateAccountType = zValidator('json', updateAccountTypeSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+  try {
+    const authUser = c.get('authUser');
+    if (!authUser) return c.json({ error: 'Unauthorized' }, 401);
+
+    const { accountType } = res.data;
+
+    await db
+      .update(saasAccounts)
+      .set({
+        accountType,
+      })
+      .where(eq(saasAccounts.id, authUser.accountId));
+
+    const [updatedUser] = await db
+      .select({
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        avatarUrl: saasUsers.avatarUrl,
+        bio: saasUsers.bio,
+        website: saasUsers.website,
+      })
+      .from(saasUsers)
+      .where(eq(saasUsers.id, authUser.userId));
+
+    return c.json({
+      message: 'Account Type Updated!',
+      user: updatedUser,
+    });
   } catch (err) {
     return c.json(errorFormat(err), 500);
   }

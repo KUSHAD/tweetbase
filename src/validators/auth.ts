@@ -11,16 +11,17 @@ export const signupSchema = z
       .describe('This is how your friends will find you')
       .trim()
       .toLowerCase(),
-    email: z.string().email(),
+    email: z.email(),
     password: z.string().min(8).max(16),
     confirmPassword: z.string().min(8).max(16),
   })
-  .superRefine((data, ctx) => {
-    if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Passwords do not match',
+  .check((ctx) => {
+    if (ctx.value.confirmPassword !== ctx.value.password) {
+      ctx.issues.push({
+        code: 'custom',
+        message: "Passwords don't match",
         path: ['confirmPassword'],
+        input: ctx.value.confirmPassword,
       });
     }
   });
@@ -88,16 +89,17 @@ export const resetPasswordSchema = z
     password: z.string().min(8).max(16),
     confirmPassword: z.string().min(8).max(16),
   })
-  .superRefine((data, ctx) => {
-    if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Passwords do not match',
+  .check((ctx) => {
+    if (ctx.value.confirmPassword !== ctx.value.password) {
+      ctx.issues.push({
+        code: 'custom',
+        message: "Passwords don't match",
         path: ['confirmPassword'],
+        input: ctx.value.confirmPassword,
       });
     }
   });
 
 export const authorizationSchema = z.object({
-  token: z.string().jwt(),
+  token: z.jwt(),
 });
