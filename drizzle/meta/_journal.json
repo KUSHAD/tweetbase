@@ -8,6 +8,20 @@
       "when": 1751259213558,
       "tag": "0000_loose_thing",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1751344833832,
+      "tag": "0001_furry_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751346225517,
+      "tag": "0002_motionless_riptide",
+      "breakpoints": true
     }
   ]
 }

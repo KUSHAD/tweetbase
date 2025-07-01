@@ -1,0 +1,1 @@
+CREATE INDEX "user_search_index" ON "saas_users" USING gin (to_tsvector('english', "user_name" || ' ' || "display_name"));

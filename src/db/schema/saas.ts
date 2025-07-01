@@ -1,7 +1,16 @@
 // COMPLETE SESSION-BASED AUTH SYSTEM WITH EMAIL VERIFICATION
 
 import { createId } from '@paralleldrive/cuid2';
-import { boolean, pgEnum, pgTableCreator, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  index,
+  pgEnum,
+  pgTableCreator,
+  text,
+  timestamp,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 const pgTable = pgTableCreator((name) => `saas_${name}`);
 
@@ -18,32 +27,43 @@ export const saasAccounts = pgTable('accounts', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').default(false),
   passwordHash: text('password_hash').notNull(),
-  accountType: saasAccountType('account_type').default('PUBLIC'),
-  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
+  accountType: saasAccountType('account_type').default('PUBLIC').notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
-    .$onUpdate(() => new Date()),
+    .$onUpdate(() => new Date())
+    .notNull(),
 });
 
-export const saasUsers = pgTable('users', {
-  id: text('id')
-    .$defaultFn(() => createId())
-    .primaryKey(),
-  displayName: varchar('display_name', { length: 50 }).notNull(),
-  userName: varchar('user_name', { length: 15 }).notNull().unique(),
-  avatarUrl: text('avatar_url').default(
-    'https://ozzfzo6f4u.ufs.sh/f/4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE',
-  ),
-  bio: varchar('bio', { length: 100 }).default(''),
-  website: varchar('website', { length: 100 }).default(''),
-  accountId: text('account_id')
-    .references(() => saasAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' })
-    .notNull(),
-  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
-  updatedAt: timestamp('updated_at', { mode: 'date' })
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const saasUsers = pgTable(
+  'users',
+  {
+    id: text('id')
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    displayName: varchar('display_name', { length: 50 }).notNull(),
+    userName: varchar('user_name', { length: 15 }).notNull().unique(),
+    avatarUrl: text('avatar_url').default(
+      'https://ozzfzo6f4u.ufs.sh/f/4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE',
+    ),
+    bio: varchar('bio', { length: 100 }).default(''),
+    website: varchar('website', { length: 100 }).default(''),
+    accountId: text('account_id')
+      .references(() => saasAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('user_search_index').using(
+      'gin',
+      sql`to_tsvector('english', ${table.userName} || ' ' || ${table.displayName})`,
+    ),
+  ],
+);
 
 export const saasSessions = pgTable('sessions', {
   id: text('id')
@@ -58,7 +78,7 @@ export const saasSessions = pgTable('sessions', {
   refreshToken: text('refresh_token').notNull().unique(),
   userAgent: text('user_agent'),
   ipAddress: text('ip_address'),
-  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
 
@@ -74,6 +94,6 @@ export const saasVerificationTokens = pgTable('verification_tokens', {
     .references(() => saasUsers.id, { onDelete: 'cascade' }),
   token: text('token').notNull(),
   tokenType: saasVerificationTokenType('token_type').notNull(),
-  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
