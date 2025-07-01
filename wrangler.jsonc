@@ -19,6 +19,10 @@
     "REDIS_TOKEN": "AdJMAAIjcDE5NDk4YjIwMTJlOTQ0YzBlOWY0ZWFiZTFiMjgxM2QwNHAxMA",
     "UPLOADTHING_TOKEN": "eyJhcGlLZXkiOiJza19saXZlX2YwOTY2YzgxYjU5ZTM4ZWQzZTZhNTc4YTY2ZDNkYTU4ZmUxM2E2MGQzOWY3MzZjNTg5YTg4Yzc0ZWRkODY5ZmEiLCJhcHBJZCI6Im96emZ6bzZmNHUiLCJyZWdpb25zIjpbInNlYTEiXX0=",
   },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+  },
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
