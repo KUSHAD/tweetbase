@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 export const updateBasicInfoSchema = z.object({
   displayName: z
@@ -31,4 +31,12 @@ export const profileSearchSchema = z.object({
     .max(50, 'Searchstring must be less than 50 characters')
     .toLowerCase()
     .transform((val) => val.replace(/[^\w\s|&:'"!()-]/g, '').replace(/\s+/g, ' ')),
+});
+
+export const updateAvatarSchema = z.object({
+  avatar: z
+    .file()
+    .min(1, 'Required')
+    .max(1000000, 'Max 1MB')
+    .mime(['image/gif', 'image/jpeg', 'image/png', 'image/svg+xml', 'image/webp']),
 });

@@ -2,9 +2,11 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { saasUsers } from '../db/schema';
+import { utapi } from '../lib/uploadthing';
 import { errorFormat } from '../lib/utils';
 import {
   profileSearchSchema,
+  updateAvatarSchema,
   updateBasicInfoSchema,
   updateUsernameSchema,
 } from '../validators/profile';
@@ -113,5 +115,46 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
     });
   } catch (error) {
     return c.json(errorFormat(error), 500);
+  }
+});
+
+export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+
+  try {
+    const authUser = c.get('authUser');
+    if (!authUser) return c.json({ error: 'Unauthorized' }, 401);
+
+    const { avatar } = res.data;
+
+    const [prevUser] = await db
+      .select({
+        avatarUrl: saasUsers.avatarUrl,
+      })
+      .from(saasUsers)
+      .where(eq(saasUsers.id, authUser.userId));
+
+    if (!prevUser) return c.json({ error: 'Unauthorized' }, 401);
+
+    const uploadedFile = await utapi.uploadFiles(avatar);
+
+    const [user] = await db
+      .update(saasUsers)
+      .set({
+        avatarUrl: uploadedFile.data?.ufsUrl,
+      })
+      .where(eq(saasUsers.id, authUser.userId))
+      .returning();
+
+    if (!prevUser.avatarUrl?.includes('4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE')) {
+      const prevFileKey = prevUser.avatarUrl?.split('/f/')[1]!;
+      await utapi.deleteFiles(prevFileKey);
+
+      return c.json({ message: 'Avatar Uploaded Succesfully!', user });
+    }
+
+    return c.json({ message: 'Avatar Uploaded Succesfully!', user });
+  } catch (err) {
+    return c.json(errorFormat(err), 500);
   }
 });

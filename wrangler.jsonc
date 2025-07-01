@@ -17,6 +17,7 @@
     "FORGOT_PASSWORD_TOKEN_SECRET": "rNHBk/2PutuexxzIa2rKrfkguNdkYhcVlONHVkU1G14S1+JHyyLztcsm1io=",
     "REDIS_URL": "https://glowing-sailfish-53836.upstash.io",
     "REDIS_TOKEN": "AdJMAAIjcDE5NDk4YjIwMTJlOTQ0YzBlOWY0ZWFiZTFiMjgxM2QwNHAxMA",
+    "UPLOADTHING_TOKEN": "eyJhcGlLZXkiOiJza19saXZlX2YwOTY2YzgxYjU5ZTM4ZWQzZTZhNTc4YTY2ZDNkYTU4ZmUxM2E2MGQzOWY3MzZjNTg5YTg4Yzc0ZWRkODY5ZmEiLCJhcHBJZCI6Im96emZ6bzZmNHUiLCJyZWdpb25zIjpbInNlYTEiXX0=",
   },
   // "kv_namespaces": [
   //   {
