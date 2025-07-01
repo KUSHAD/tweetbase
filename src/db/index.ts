@@ -18,4 +18,5 @@ export const db = drizzle({
       px: 10000,
     },
   }),
+  logger: true,
 });

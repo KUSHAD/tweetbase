@@ -1,12 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { saasAccounts, saasUsers } from '../db/schema';
+import { saasUsers } from '../db/schema';
 import { utapi } from '../lib/uploadthing';
 import { errorFormat } from '../lib/utils';
 import {
   profileSearchSchema,
-  updateAccountTypeSchema,
   updateAvatarSchema,
   updateBasicInfoSchema,
   updateUsernameSchema,
@@ -28,11 +27,22 @@ export const updateBasicInfo = zValidator('json', updateBasicInfoSchema, async (
         website,
       })
       .where(eq(saasUsers.id, authUser.userId))
-      .returning();
+      .returning({
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        avatarUrl: saasUsers.avatarUrl,
+        bio: saasUsers.bio,
+        website: saasUsers.website,
+        followerCount: saasUsers.followerCount,
+        followingCount: saasUsers.followingCount,
+      });
 
     return c.json({
       message: 'Profile updated successfully',
-      user: updatedUser,
+      data: {
+        user: updatedUser,
+      },
     });
   } catch (error) {
     return c.json(errorFormat(error), 500);
@@ -60,11 +70,22 @@ export const updateUsername = zValidator('json', updateUsernameSchema, async (re
         userName,
       })
       .where(eq(saasUsers.id, authUser.userId))
-      .returning();
+      .returning({
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        avatarUrl: saasUsers.avatarUrl,
+        bio: saasUsers.bio,
+        website: saasUsers.website,
+        followerCount: saasUsers.followerCount,
+        followingCount: saasUsers.followingCount,
+      });
 
     return c.json({
       message: 'Username updated successfully',
-      user: updatedUser,
+      data: {
+        user: updatedUser,
+      },
     });
   } catch (error) {
     return c.json(errorFormat(error), 500);
@@ -85,16 +106,15 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
         displayName: saasUsers.displayName,
         userName: saasUsers.userName,
         avatarUrl: saasUsers.avatarUrl,
-        accountId: saasUsers.accountId,
         bio: saasUsers.bio,
         website: saasUsers.website,
+        followerCount: saasUsers.followerCount,
+        followingCount: saasUsers.followingCount,
         rank: sql`ts_rank(
           setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
           setweight(to_tsvector('english', ${saasUsers.displayName}), 'B'),
           websearch_to_tsquery('english', ${searchString})
         )`.mapWith(Number),
-        createdAt: saasUsers.createdAt,
-        updatedAt: saasUsers.updatedAt,
       })
       .from(saasUsers)
       .where(
@@ -112,7 +132,9 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
 
     return c.json({
       message: 'Profiles fetched!',
-      users,
+      data: {
+        users,
+      },
     });
   } catch (error) {
     return c.json(errorFormat(error), 500);
@@ -145,52 +167,25 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
         avatarUrl: uploadedFile.data?.ufsUrl,
       })
       .where(eq(saasUsers.id, authUser.userId))
-      .returning();
-
-    if (!prevUser.avatarUrl?.includes('4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE')) {
-      const prevFileKey = prevUser.avatarUrl?.split('/f/')[1]!;
-      await utapi.deleteFiles(prevFileKey);
-
-      return c.json({ message: 'Avatar Uploaded Succesfully!', user });
-    }
-
-    return c.json({ message: 'Avatar Uploaded Succesfully!', user });
-  } catch (err) {
-    return c.json(errorFormat(err), 500);
-  }
-});
-
-export const updateAccountType = zValidator('json', updateAccountTypeSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
-  try {
-    const authUser = c.get('authUser');
-    if (!authUser) return c.json({ error: 'Unauthorized' }, 401);
-
-    const { accountType } = res.data;
-
-    await db
-      .update(saasAccounts)
-      .set({
-        accountType,
-      })
-      .where(eq(saasAccounts.id, authUser.accountId));
-
-    const [updatedUser] = await db
-      .select({
+      .returning({
         id: saasUsers.id,
         displayName: saasUsers.displayName,
         userName: saasUsers.userName,
         avatarUrl: saasUsers.avatarUrl,
         bio: saasUsers.bio,
         website: saasUsers.website,
-      })
-      .from(saasUsers)
-      .where(eq(saasUsers.id, authUser.userId));
+        followerCount: saasUsers.followerCount,
+        followingCount: saasUsers.followingCount,
+      });
 
-    return c.json({
-      message: 'Account Type Updated!',
-      user: updatedUser,
-    });
+    if (!prevUser.avatarUrl?.includes('4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE')) {
+      const prevFileKey = prevUser.avatarUrl?.split('/f/')[1]!;
+      await utapi.deleteFiles(prevFileKey);
+
+      return c.json({ message: 'Avatar Uploaded Succesfully!', data: { user } });
+    }
+
+    return c.json({ message: 'Avatar Uploaded Succesfully!', data: { user } });
   } catch (err) {
     return c.json(errorFormat(err), 500);
   }

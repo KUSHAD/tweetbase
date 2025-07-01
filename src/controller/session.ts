@@ -13,10 +13,22 @@ export const me = async (c: Context) => {
   if (!authUser) return c.json({ message: 'Unauthorized' }, 401);
 
   try {
-    const [row] = await db.select().from(saasUsers).where(eq(saasUsers.id, authUser.userId));
+    const [row] = await db
+      .select({
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        avatarUrl: saasUsers.avatarUrl,
+        bio: saasUsers.bio,
+        website: saasUsers.website,
+        followerCount: saasUsers.followerCount,
+        followingCount: saasUsers.followingCount,
+      })
+      .from(saasUsers)
+      .where(eq(saasUsers.id, authUser.userId));
 
     if (!row) return c.json({ message: 'User not found' }, 404);
-    return c.json({ message: 'Profile', data: row });
+    return c.json({ message: 'Profile', data: { user: row } });
   } catch (e) {
     return c.json(errorFormat(e), 500);
   }
@@ -81,13 +93,13 @@ export const getActiveSessions = async (c: Context) => {
         ),
       );
 
-    return c.json({ message: 'Active sessions', data: sessions });
+    return c.json({ message: 'Active sessions', data: { sessions } });
   } catch (e) {
     return c.json(errorFormat(e), 500);
   }
 };
 
-export const revokeSession = zValidator('param', revokeSessionSchema, async (res, c) => {
+export const revokeSession = zValidator('json', revokeSessionSchema, async (res, c) => {
   if (!res.success) return c.json(errorFormat(res.error), 400);
   const { id } = res.data;
 

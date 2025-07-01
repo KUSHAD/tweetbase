@@ -7,6 +7,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 
+import { csrf } from 'hono/csrf';
 import { createRouteHandler } from 'uploadthing/server';
 import { limiter } from './lib/rate-limit';
 import { ourFileRouter } from './lib/uploadthing';
@@ -16,6 +17,9 @@ const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 // 🌐 Enable CORS globally
 app.use('*', cors());
+
+// 🔑 Enable CSRF
+app.use(csrf());
 
 // 🚫 Global rate limiter (Upstash Redis-backed)
 app.use('*', limiter);

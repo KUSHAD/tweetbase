@@ -44,7 +44,16 @@ export const signup = zValidator('json', signupSchema, async (res, c) => {
     const [user] = await db
       .insert(saasUsers)
       .values({ accountId: acc.id, displayName, userName })
-      .returning();
+      .returning({
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        avatarUrl: saasUsers.avatarUrl,
+        bio: saasUsers.bio,
+        website: saasUsers.website,
+        followerCount: saasUsers.followerCount,
+        followingCount: saasUsers.followingCount,
+      });
 
     const accessToken = await generateAccessToken({ userId: user.id, accountId: acc.id });
     const refreshToken = await generateRefreshToken({ userId: user.id, accountId: acc.id });
@@ -102,7 +111,19 @@ export const login = zValidator('json', loginSchema, async (res, c) => {
         .where(eq(saasAccounts.email, identifier));
       if (!aByEmail) return c.json({ message: 'Invalid credentials' }, 401);
       acc = aByEmail;
-      [user] = await db.select().from(saasUsers).where(eq(saasUsers.accountId, acc.id));
+      [user] = await db
+        .select({
+          id: saasUsers.id,
+          displayName: saasUsers.displayName,
+          userName: saasUsers.userName,
+          avatarUrl: saasUsers.avatarUrl,
+          bio: saasUsers.bio,
+          website: saasUsers.website,
+          followerCount: saasUsers.followerCount,
+          followingCount: saasUsers.followingCount,
+        })
+        .from(saasUsers)
+        .where(eq(saasUsers.accountId, acc.id));
     }
 
     const match = await bcrypt.compare(password, acc.passwordHash);
@@ -216,7 +237,7 @@ export const sendPasswordResetEmail = zValidator('json', forgotPasswordSchema, a
     });
 
     await sendPasswordResetEmailUtils({ email: acc.email, name: user.displayName }, otp);
-    return c.json({ message: 'Check your inbox to reset password', resetToken });
+    return c.json({ message: 'Check your inbox to reset password', data: { resetToken } });
   } catch (e) {
     return c.json(errorFormat(e), 500);
   }

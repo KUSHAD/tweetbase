@@ -1,5 +1,4 @@
 import { z } from 'zod/v4';
-import { saasAccountType } from '../db/schema';
 
 export const updateBasicInfoSchema = z.object({
   displayName: z
@@ -40,8 +39,4 @@ export const updateAvatarSchema = z.object({
     .min(1, 'Required')
     .max(1000000, 'Max 1MB')
     .mime(['image/gif', 'image/jpeg', 'image/png', 'image/svg+xml', 'image/webp']),
-});
-
-export const updateAccountTypeSchema = z.object({
-  accountType: z.enum(saasAccountType.enumValues),
 });
