@@ -92,7 +92,7 @@ export const updateUsername = zValidator('json', updateUsernameSchema, async (re
   }
 });
 
-export const searchProfiles = zValidator('query', profileSearchSchema, async (res, c) => {
+export const searchProfiles = zValidator('json', profileSearchSchema, async (res, c) => {
   if (!res.success) return c.json(errorFormat(res.error), 400);
   try {
     const authUser = c.get('authUser');
@@ -110,11 +110,11 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
         website: saasUsers.website,
         followerCount: saasUsers.followerCount,
         followingCount: saasUsers.followingCount,
-        rank: sql`ts_rank(
+        rank: sql<number>`ts_rank(
           setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
           setweight(to_tsvector('english', ${saasUsers.displayName}), 'B'),
           websearch_to_tsquery('english', ${searchString})
-        )`.mapWith(Number),
+        )`,
       })
       .from(saasUsers)
       .where(

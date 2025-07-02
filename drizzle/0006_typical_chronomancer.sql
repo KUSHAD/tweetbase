@@ -1,0 +1,2 @@
+ALTER TABLE "saas_follows" ADD CONSTRAINT "saas_follows_follower_id_saas_users_id_fk" FOREIGN KEY ("follower_id") REFERENCES "public"."saas_users"("id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "saas_follows" ADD CONSTRAINT "saas_follows_following_id_saas_users_id_fk" FOREIGN KEY ("following_id") REFERENCES "public"."saas_users"("id") ON DELETE cascade ON UPDATE cascade;

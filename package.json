@@ -6,9 +6,11 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "prepare": "husky",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx src/scripts/seed.ts"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.9.0",
     "@hono-rate-limiter/redis": "^0.1.4",
     "@hono/zod-validator": "^0.7.0",
     "@neondatabase/serverless": "^1.0.1",

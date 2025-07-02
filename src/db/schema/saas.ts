@@ -1,5 +1,3 @@
-// COMPLETE SESSION-BASED AUTH SYSTEM WITH EMAIL VERIFICATION
-
 import { createId } from '@paralleldrive/cuid2';
 import { sql } from 'drizzle-orm';
 import {
@@ -103,13 +101,19 @@ export const saasUsers = pgTable(
 export const saasFollows = pgTable(
   'follows',
   {
-    followerId: text('follower_id').notNull(),
-    followingId: text('following_id').notNull(),
+    followerId: text('follower_id')
+      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .notNull(),
+    followingId: text('following_id')
+      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .notNull(),
     createdAt: timestamp('created_at').defaultNow(),
   },
-  (table) => ({
-    pk: primaryKey({
+  (table) => [
+    primaryKey({
       columns: [table.followerId, table.followingId],
     }),
-  }),
+    index('follower_idx').on(table.followerId),
+    index('following_idx').on(table.followingId),
+  ],
 );

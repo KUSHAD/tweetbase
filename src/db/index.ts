@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import { neon } from '@neondatabase/serverless';
 import { upstashCache } from 'drizzle-orm/cache/upstash';
 import { drizzle } from 'drizzle-orm/neon-http';
