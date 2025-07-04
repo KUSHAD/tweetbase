@@ -8,9 +8,7 @@ import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 
 import { csrf } from 'hono/csrf';
-import { createRouteHandler } from 'uploadthing/server';
 import { limiter } from './lib/rate-limit';
-import { ourFileRouter } from './lib/uploadthing';
 import router from './routes';
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
@@ -47,13 +45,6 @@ app.get(
 
 // 🛣️ Mount all application routes
 app.route('/', router);
-
-const handlers = createRouteHandler({
-  router: ourFileRouter,
-  config: { token: process.env.UPLOADTHING_TOKEN },
-});
-
-app.all('/api/uploadthing', (c) => handlers(c.req.raw));
 
 app.notFound((c) =>
   c.json(
