@@ -84,7 +84,7 @@ export const unfollowUser = zValidator('json', followSchema, async (result, c) =
   }
 });
 
-export const getFollowers = zValidator('json', followSchema, async (res, c) => {
+export const getFollowers = zValidator('param', followSchema, async (res, c) => {
   if (!res.success) return c.json(errorFormat(res.error), 400);
 
   try {
@@ -114,7 +114,7 @@ export const getFollowers = zValidator('json', followSchema, async (res, c) => {
   }
 });
 
-export const getFollowing = zValidator('json', followSchema, async (res, c) => {
+export const getFollowing = zValidator('param', followSchema, async (res, c) => {
   if (!res.success) return c.json(errorFormat(res.error), 400);
 
   try {
@@ -171,7 +171,9 @@ export const getSuggestedFollows = async (c: Context) => {
             WHERE follower_id = ${userId}
           )
           AND f2.following_id = ${saasUsers.id}
-        )`.as('mutualFollowCount'),
+        )`
+          .mapWith(Number)
+          .as('mutualFollowCount'),
       })
       .from(saasUsers)
       .where(and(notInArray(saasUsers.id, [...alreadyFollowingIds, userId])))
