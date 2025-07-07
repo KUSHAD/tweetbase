@@ -6,7 +6,6 @@ import { db } from '../db';
 import {
   saasAccounts,
   saasFollows,
-  saasRetweets,
   saasTweetComments,
   saasTweetLikes,
   saasTweets,
@@ -20,13 +19,11 @@ const RETWEET_PROBABILITY = 0.2;
 const QUOTE_PROBABILITY = 0.1;
 const LIKE_PROBABILITY = 0.4;
 const COMMENT_PROBABILITY = 0.4;
-const REPLY_PROBABILITY = 0.2;
 
 async function seed() {
   console.log('🧼 Clearing old data...');
   await db.delete(saasTweetLikes);
   await db.delete(saasTweetComments);
-  await db.delete(saasRetweets);
   await db.delete(saasTweets);
   await db.delete(saasFollows);
   await db.delete(saasUsers);
@@ -96,27 +93,21 @@ async function seed() {
 
   console.log(`🔗 ${follows.length} follows created`);
 
-  // 🐦 Tweets
   const tweets = [];
+
+  // Normal tweets
   for (const user of users) {
     for (let i = 0; i < TWEETS_PER_USER; i++) {
       const isMedia = Math.random() < 0.4;
-      const mediaType: 'image' | 'video' | null = isMedia
-        ? Math.random() < 0.5
-          ? 'image'
-          : 'video'
-        : null;
-
-      const mediaUrl = isMedia
-        ? faker.image.urlLoremFlickr({ category: mediaType === 'image' ? 'cats' : 'nature' })
-        : null;
+      const mediaUrl = isMedia ? faker.image.urlLoremFlickr() : null;
 
       tweets.push({
         id: createId(),
         userId: user.id,
+        type: 'TWEET' as const,
         content: faker.lorem.sentence(),
         mediaUrl,
-        mediaType,
+        originalTweetId: null,
         likeCount: 0,
         retweetCount: 0,
         quoteCount: 0,
@@ -126,18 +117,16 @@ async function seed() {
   }
 
   await db.insert(saasTweets).values(tweets);
-  console.log(`📝 ${tweets.length} tweets created`);
+  console.log(`📝 ${tweets.length} original tweets created`);
 
-  // 🔁 Retweets, 🗣️ Quotes, ❤️ Likes, 💬 Comments
   const likes = [];
-  const retweets = [];
+  const quoteTweets = [];
+  const retweetEntries = [];
   const comments = [];
-  const quoteTweets = []; // Fixed: Separate array for quote tweets
 
   for (const tweet of tweets) {
     for (const user of users) {
-      // Skip interactions with own tweets for some operations
-      if (tweet.userId === user.id) continue;
+      if (user.id === tweet.userId) continue;
 
       // ❤️ Like
       if (Math.random() < LIKE_PROBABILITY) {
@@ -147,7 +136,18 @@ async function seed() {
 
       // 🔁 Retweet
       if (Math.random() < RETWEET_PROBABILITY) {
-        retweets.push({ userId: user.id, tweetId: tweet.id });
+        retweetEntries.push({
+          id: createId(),
+          userId: user.id,
+          type: 'RETWEET' as const,
+          content: null,
+          mediaUrl: null,
+          originalTweetId: tweet.id,
+          likeCount: 0,
+          retweetCount: 0,
+          quoteCount: 0,
+          commentCount: 0,
+        });
         tweet.retweetCount++;
       }
 
@@ -156,10 +156,10 @@ async function seed() {
         quoteTweets.push({
           id: createId(),
           userId: user.id,
+          type: 'QUOTE' as const,
           content: faker.lorem.sentence(),
-          quotedTweetId: tweet.id,
           mediaUrl: null,
-          mediaType: null,
+          originalTweetId: tweet.id,
           likeCount: 0,
           retweetCount: 0,
           quoteCount: 0,
@@ -168,7 +168,7 @@ async function seed() {
         tweet.quoteCount++;
       }
 
-      // 💬 Comments
+      // 💬 Comment
       if (Math.random() < COMMENT_PROBABILITY) {
         comments.push({
           id: createId(),
@@ -187,11 +187,14 @@ async function seed() {
     console.log(`🗣️ ${quoteTweets.length} quote tweets created`);
   }
 
+  if (retweetEntries.length) {
+    await db.insert(saasTweets).values(retweetEntries);
+    console.log(`🔁 ${retweetEntries.length} retweets created`);
+  }
+
   if (likes.length) await db.insert(saasTweetLikes).values(likes);
-  if (retweets.length) await db.insert(saasRetweets).values(retweets);
   if (comments.length) await db.insert(saasTweetComments).values(comments);
 
-  // Update tweet counts for original tweets
   await Promise.all(
     tweets.map((tweet) =>
       db
@@ -207,8 +210,7 @@ async function seed() {
   );
 
   console.log(`❤️ ${likes.length} likes`);
-  console.log(`🔁 ${retweets.length} retweets`);
-  console.log(`🗨️ ${comments.length} comments`);
+  console.log(`💬 ${comments.length} comments`);
   console.log('✅ Seeding complete!');
 }
 

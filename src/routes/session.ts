@@ -7,6 +7,6 @@ const sessionRouter = new Hono();
 sessionRouter.get('/me', authMiddleware, me);
 sessionRouter.post('/refresh', rotateRefreshToken);
 sessionRouter.get('/active', authMiddleware, getActiveSessions);
-sessionRouter.delete('/revoke', authMiddleware, revokeSession);
+sessionRouter.delete('/revoke/:sessionId', authMiddleware, revokeSession);
 
 export default sessionRouter;

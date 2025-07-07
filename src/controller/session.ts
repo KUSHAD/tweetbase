@@ -99,9 +99,9 @@ export const getActiveSessions = async (c: Context) => {
   }
 };
 
-export const revokeSession = zValidator('json', revokeSessionSchema, async (res, c) => {
+export const revokeSession = zValidator('param', revokeSessionSchema, async (res, c) => {
   if (!res.success) return c.json(errorFormat(res.error), 400);
-  const { id } = res.data;
+  const { sessionId } = res.data;
 
   const authUser = c.get('authUser');
   if (!authUser) return c.json({ message: 'Unauthorized' }, 401);
@@ -112,7 +112,7 @@ export const revokeSession = zValidator('json', revokeSessionSchema, async (res,
       .from(saasSessions)
       .where(
         and(
-          eq(saasSessions.id, id),
+          eq(saasSessions.id, sessionId),
           eq(saasSessions.userId, authUser.userId),
           eq(saasSessions.accountId, authUser.accountId),
         ),
@@ -121,7 +121,7 @@ export const revokeSession = zValidator('json', revokeSessionSchema, async (res,
 
     if (!session) return c.json({ message: 'Session not found' }, 404);
 
-    await db.delete(saasSessions).where(eq(saasSessions.id, id));
+    await db.delete(saasSessions).where(eq(saasSessions.id, sessionId));
 
     return c.json({ message: 'Session revoked successfully' });
   } catch (e) {

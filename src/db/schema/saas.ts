@@ -20,6 +20,8 @@ export const saasVerificationTokenType = pgEnum('saas_verification_token_type', 
   'PASSWORD_RESET',
 ]);
 
+export const tweetType = pgEnum('tweet_type', ['TWEET', 'RETWEET', 'QUOTE']);
+
 export const saasAccounts = pgTable('accounts', {
   id: text('id')
     .$defaultFn(() => createId())
@@ -92,7 +94,7 @@ export const saasUsers = pgTable(
       .notNull(),
   },
   (table) => [
-    index('user_search_index').using(
+    index('saas_users_search_index').using(
       'gin',
       sql`to_tsvector('english', ${table.userName} || ' ' || ${table.displayName})`,
     ),
@@ -114,58 +116,41 @@ export const saasFollows = pgTable(
     primaryKey({
       columns: [table.followerId, table.followingId],
     }),
-    index('follower_idx').on(table.followerId),
-    index('following_idx').on(table.followingId),
+    index('saas_follows_follower_idx').on(table.followerId),
+    index('saas_follows_following_idx').on(table.followingId),
   ],
 );
 
 export const saasTweets = pgTable(
   'tweets',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
     userId: text('user_id')
       .notNull()
       .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-
-    content: varchar('content', { length: 250 }).notNull(),
-    quotedTweetId: text('quoted_tweet_id').references((): AnyPgColumn => saasTweets.id, {
+    content: varchar('content', { length: 280 }),
+    mediaUrl: text('media_url'),
+    type: tweetType('type').default('TWEET').notNull(),
+    originalTweetId: text('original_tweet_id').references((): AnyPgColumn => saasTweets.id, {
       onDelete: 'set null',
       onUpdate: 'cascade',
     }),
-    mediaUrl: text('media_url'),
-    mediaType: text('media_type').$type<'image' | 'video'>(),
     likeCount: integer('like_count').notNull().default(0),
     retweetCount: integer('retweet_count').notNull().default(0),
     quoteCount: integer('quote_count').notNull().default(0),
     commentCount: integer('comment_count').notNull().default(0),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' })
-      .$onUpdate(() => new Date())
       .defaultNow()
+      .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [
-    index('tweet_user_idx').on(table.userId),
-    index('tweet_quote_idx').on(table.quotedTweetId),
-  ],
-);
-
-export const saasRetweets = pgTable(
-  'retweets',
-  {
-    userId: text('user_id')
-      .notNull()
-      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    tweetId: text('tweet_id')
-      .notNull()
-      .references(() => saasTweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.userId, table.tweetId] }),
-    index('retweet_user_idx').on(table.userId),
-    index('retweet_tweet_idx').on(table.tweetId),
+    index('saas_tweets_user_idx').on(table.userId),
+    index('saas_tweets_type_idx').on(table.type),
+    index('saas_tweets_original_idx').on(table.originalTweetId),
   ],
 );
 
@@ -187,8 +172,8 @@ export const saasTweetComments = pgTable(
       .notNull(),
   },
   (table) => [
-    index('comment_tweet_idx').on(table.tweetId),
-    index('comment_user_idx').on(table.userId),
+    index('saas_tweet_comments_tweet_idx').on(table.tweetId),
+    index('saas_tweet_comments_user_idx').on(table.userId),
   ],
 );
 
@@ -205,7 +190,7 @@ export const saasTweetLikes = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.tweetId] }),
-    index('like_user_idx').on(table.userId),
-    index('like_tweet_idx').on(table.tweetId),
+    index('saas_tweet_likes_user_idx').on(table.userId),
+    index('saas_tweet_likes_tweet_idx').on(table.tweetId),
   ],
 );

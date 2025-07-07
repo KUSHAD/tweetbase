@@ -41,7 +41,7 @@ export const followUser = zValidator('json', followSchema, async (result, c) => 
         .where(eq(saasUsers.id, targetUserId));
     }
 
-    return c.json({ message: 'Followed successfully' });
+    return c.json({ message: 'Followed successfully', data: { inserted } });
   } catch (error) {
     return c.json(errorFormat(error), 500);
   }
@@ -78,7 +78,12 @@ export const unfollowUser = zValidator('json', followSchema, async (result, c) =
         .where(eq(saasUsers.id, targetUserId));
     }
 
-    return c.json({ message: 'Unfollowed successfully' });
+    return c.json({
+      message: 'Unfollowed successfully',
+      data: {
+        deleted,
+      },
+    });
   } catch (error) {
     return c.json(errorFormat(error), 500);
   }
