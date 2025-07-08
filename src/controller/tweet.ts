@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { saasTweets, saasUsers } from '../db/schema';
 import { originalTweet, originalTweetUser } from '../lib/db-alias';
@@ -113,22 +113,55 @@ export const getTweet = zValidator('param', getTweetSchema, async (res, c) => {
 
 export const deleteTweet = zValidator('param', getTweetSchema, async (res, c) => {
   if (!res.success) return c.json(errorFormat(res.error), 400);
+
   try {
     const authUser = c.get('authUser');
     const { tweetId } = res.data;
 
-    const [deleted] = await db
-      .delete(saasTweets)
-      .where(and(eq(saasTweets.userId, authUser.userId), eq(saasTweets.id, tweetId)))
-      .returning({ id: saasTweets.id });
+    const [tweet] = await db
+      .select({
+        id: saasTweets.id,
+        userId: saasTweets.userId,
+        mediaUrl: saasTweets.mediaUrl,
+        originalTweetId: saasTweets.originalTweetId,
+        type: saasTweets.type,
+      })
+      .from(saasTweets)
+      .where(and(eq(saasTweets.id, tweetId), eq(saasTweets.userId, authUser.userId)))
+      .limit(1);
 
-    if (!deleted) return c.json({ message: 'Tweet not found with the associated user' }, 400);
+    if (!tweet) {
+      return c.json({ message: 'Tweet not found with the associated user' }, 400);
+    }
+
+    // 🧹 Clean up media
+    if (tweet.mediaUrl) {
+      const fileKey = getUploadthingFileKey(tweet.mediaUrl);
+      await utapi.deleteFiles(fileKey);
+    }
+
+    // ⬇️ Optional: Decrement parent tweet counters if this is a quote or retweet
+    if (tweet.originalTweetId && tweet.type !== 'TWEET') {
+      const field =
+        tweet.type === 'RETWEET'
+          ? saasTweets.retweetCount
+          : tweet.type === 'QUOTE'
+            ? saasTweets.quoteCount
+            : null;
+
+      if (field) {
+        await db
+          .update(saasTweets)
+          .set({ [field.name]: sql`${field} - 1` })
+          .where(eq(saasTweets.id, tweet.originalTweetId));
+      }
+    }
+
+    await db.delete(saasTweets).where(eq(saasTweets.id, tweetId));
 
     return c.json({
       message: 'Tweet Deleted!',
-      data: {
-        tweetId: deleted.id,
-      },
+      data: { tweetId },
     });
   } catch (error) {
     return c.json(errorFormat(error), 500);
@@ -137,41 +170,70 @@ export const deleteTweet = zValidator('param', getTweetSchema, async (res, c) =>
 
 export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
   if (!res.success) return c.json(errorFormat(res.error), 400);
+
   try {
     const tweetId = c.req.param('tweetId');
     const authUser = c.get('authUser');
     const { content, media } = res.data;
 
-    let uploadedMedia = null;
-    if (media) {
-      uploadedMedia = await utapi.uploadFiles(media);
+    if (!tweetId) {
+      return c.json({ message: 'Missing tweetId in route params' }, 400);
     }
 
-    const [foundTweet] = await db
+    const [tweet] = await db
       .select({
         id: saasTweets.id,
         mediaUrl: saasTweets.mediaUrl,
+        type: saasTweets.type,
       })
       .from(saasTweets)
-      .where(and(eq(saasTweets.id, tweetId!), eq(saasTweets.userId, authUser.userId)))
+      .where(and(eq(saasTweets.id, tweetId), eq(saasTweets.userId, authUser.userId)))
       .limit(1);
 
-    if (!foundTweet) return c.json({ message: 'Tweet not found with the associated user' }, 400);
-
-    if (foundTweet.mediaUrl) {
-      const prevFileKey = getUploadthingFileKey(foundTweet.mediaUrl);
-      await utapi.deleteFiles(prevFileKey);
+    if (!tweet) {
+      return c.json({ message: 'Tweet not found with the associated user' }, 400);
     }
 
+    // 💬 Rules per type
+    if (tweet.type === 'RETWEET' && (content || media)) {
+      return c.json({ message: 'Retweets cannot have content or media' }, 400);
+    }
+
+    if (tweet.type === 'QUOTE' && media) {
+      return c.json({ message: 'Quoted tweets cannot have media' }, 400);
+    }
+
+    if (!content && !media) {
+      return c.json({ message: 'Tweet must have content or media' }, 400);
+    }
+
+    // 📤 Upload new media if present
+    let newMediaUrl: string | null = null;
+    if (media) {
+      const upload = await utapi.uploadFiles(media);
+      if (!upload?.data?.ufsUrl) {
+        return c.json({ message: 'Media upload failed' }, 500);
+      }
+      newMediaUrl = upload.data.ufsUrl;
+    }
+
+    // 🧹 Remove old media if replaced
+    if (tweet.mediaUrl && newMediaUrl) {
+      const prevKey = getUploadthingFileKey(tweet.mediaUrl);
+      await utapi.deleteFiles(prevKey);
+    }
+
+    // 🔁 Update
     const [updatedTweet] = await db
       .update(saasTweets)
       .set({
         content,
-        mediaUrl: uploadedMedia?.data?.ufsUrl ?? null,
+        mediaUrl: newMediaUrl ?? (media ? null : tweet.mediaUrl),
       })
-      .where(and(eq(saasTweets.id, tweetId!), eq(saasTweets.userId, authUser.userId)))
+      .where(and(eq(saasTweets.id, tweetId), eq(saasTweets.userId, authUser.userId)))
       .returning();
 
+    // 👤 Fetch user again (lightweight)
     const [user] = await db
       .select({
         id: saasUsers.id,
