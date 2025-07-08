@@ -135,3 +135,7 @@ export async function verifyPasswordResetToken(token: string) {
   const secret = new TextEncoder().encode(process.env.FORGOT_PASSWORD_SECRET);
   return verifyTOTPWithGracePeriod(secret, 60 * 60, 6, token, 60 * 10);
 }
+
+export function getUploadthingFileKey(url: string) {
+  return url.split('/f/')[1]!;
+}
