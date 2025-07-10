@@ -46,6 +46,8 @@ export const newTweet = zValidator('form', newTweetSchema, async (res, c) => {
         tweet: {
           ...newTweet,
           user,
+          originalTweet: null,
+          originalUser: null,
         },
       },
     });
@@ -173,6 +175,11 @@ export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
 
   try {
     const tweetId = c.req.param('tweetId');
+
+    const safeId = getTweetSchema.safeParse({ tweetId });
+
+    if (!safeId.success) return c.json(errorFormat(safeId.error), 400);
+
     const authUser = c.get('authUser');
     const { content, media } = res.data;
 
@@ -187,7 +194,7 @@ export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
         type: saasTweets.type,
       })
       .from(saasTweets)
-      .where(and(eq(saasTweets.id, tweetId), eq(saasTweets.userId, authUser.userId)))
+      .where(and(eq(saasTweets.id, safeId.data.tweetId), eq(saasTweets.userId, authUser.userId)))
       .limit(1);
 
     if (!tweet) {
@@ -230,7 +237,7 @@ export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
         content,
         mediaUrl: newMediaUrl ?? (media ? null : tweet.mediaUrl),
       })
-      .where(and(eq(saasTweets.id, tweetId), eq(saasTweets.userId, authUser.userId)))
+      .where(and(eq(saasTweets.id, safeId.data.tweetId), eq(saasTweets.userId, authUser.userId)))
       .returning();
 
     // 👤 Fetch user again (lightweight)
@@ -250,6 +257,95 @@ export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
         tweet: {
           ...updatedTweet,
           user,
+        },
+      },
+    });
+  } catch (error) {
+    return c.json(errorFormat(error), 500);
+  }
+});
+
+export const retweet = zValidator('param', getTweetSchema, async (res, c) => {
+  if (!res.success) return c.json(errorFormat(res.error), 400);
+
+  try {
+    const { tweetId } = res.data;
+    const authUser = c.get('authUser');
+
+    // 1. Fetch original tweet + author
+    const [ogTweet] = await db
+      .select({
+        id: saasTweets.id,
+        userId: saasTweets.userId,
+        content: saasTweets.content,
+        mediaUrl: saasTweets.mediaUrl,
+        retweetCount: saasTweets.retweetCount,
+        createdAt: saasTweets.createdAt,
+        user: {
+          id: saasUsers.id,
+          displayName: saasUsers.displayName,
+          userName: saasUsers.userName,
+          avatarUrl: saasUsers.avatarUrl,
+        },
+      })
+      .from(saasTweets)
+      .where(eq(saasTweets.id, tweetId))
+      .innerJoin(saasUsers, eq(saasUsers.id, saasTweets.userId))
+      .limit(1);
+
+    if (!ogTweet) {
+      return c.json({ message: 'Tweet not found' }, 404);
+    }
+
+    if (ogTweet.userId === authUser.userId) {
+      return c.json({ message: 'You cannot retweet your own tweet' }, 400);
+    }
+
+    // 2. Check if already retweeted
+    const [alreadyRetweeted] = await db
+      .select({ id: saasTweets.id })
+      .from(saasTweets)
+      .where(
+        and(
+          eq(saasTweets.userId, authUser.userId),
+          eq(saasTweets.originalTweetId, tweetId),
+          eq(saasTweets.type, 'RETWEET'),
+        ),
+      );
+
+    if (alreadyRetweeted) {
+      return c.json({ message: 'Already retweeted this tweet' }, 400);
+    }
+
+    // 3. Create retweet and update count atomically
+    const [retweet] = await db.transaction(async (tx) => {
+      await tx
+        .update(saasTweets)
+        .set({ retweetCount: sql`${saasTweets.retweetCount} + 1` })
+        .where(eq(saasTweets.id, tweetId));
+
+      const [inserted] = await tx
+        .insert(saasTweets)
+        .values({
+          id: createId(),
+          userId: authUser.userId,
+          type: 'RETWEET',
+          originalTweetId: tweetId,
+          content: null,
+          mediaUrl: null,
+        })
+        .returning();
+
+      return [inserted];
+    });
+
+    return c.json({
+      message: 'Retweeted!',
+      data: {
+        tweet: {
+          ...retweet,
+          originalTweet: ogTweet,
+          originalTweetUser: ogTweet.user,
         },
       },
     });

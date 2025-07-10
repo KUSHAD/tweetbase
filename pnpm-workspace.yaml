@@ -3,3 +3,4 @@ onlyBuiltDependencies:
   - esbuild
   - msgpackr-extract
   - unrs-resolver
+  - workerd
