@@ -327,7 +327,6 @@ export const retweet = zValidator('param', getTweetSchema, async (res, c) => {
       const [inserted] = await tx
         .insert(saasTweets)
         .values({
-          id: createId(),
           userId: authUser.userId,
           type: 'RETWEET',
           originalTweetId: tweetId,
