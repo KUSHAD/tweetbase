@@ -1,17 +1,19 @@
-import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { deleteTweet, editTweet, getTweet, newTweet, retweet } from '../controller/tweet';
+import {
+  deleteTweet,
+  editTweet,
+  getTweet,
+  newTweet,
+  quoteTweet,
+  retweet,
+} from '../controller/tweet';
 import { authMiddleware } from '../middleware/auth';
-import { getTweetSchema } from '../validators/tweet';
 
 const tweetRouter = new Hono();
 
 tweetRouter.post('/', authMiddleware, newTweet);
-tweetRouter
-  .all('/:tweetId', authMiddleware)
-  .get(getTweet)
-  .patch(zValidator('param', getTweetSchema), editTweet)
-  .delete(deleteTweet);
+tweetRouter.all('/:tweetId', authMiddleware).get(getTweet).patch(editTweet).delete(deleteTweet);
 tweetRouter.post('/retweet/:tweetId', authMiddleware, retweet);
+tweetRouter.post('/quote/:tweetId', authMiddleware, quoteTweet);
 
 export default tweetRouter;

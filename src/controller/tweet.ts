@@ -318,25 +318,21 @@ export const retweet = zValidator('param', getTweetSchema, async (res, c) => {
     }
 
     // 3. Create retweet and update count atomically
-    const [retweet] = await db.transaction(async (tx) => {
-      await tx
-        .update(saasTweets)
-        .set({ retweetCount: sql`${saasTweets.retweetCount} + 1` })
-        .where(eq(saasTweets.id, tweetId));
+    const [retweet] = await db
+      .insert(saasTweets)
+      .values({
+        userId: authUser.userId,
+        type: 'RETWEET',
+        originalTweetId: tweetId,
+        content: null,
+        mediaUrl: null,
+      })
+      .returning();
 
-      const [inserted] = await tx
-        .insert(saasTweets)
-        .values({
-          userId: authUser.userId,
-          type: 'RETWEET',
-          originalTweetId: tweetId,
-          content: null,
-          mediaUrl: null,
-        })
-        .returning();
-
-      return [inserted];
-    });
+    await db
+      .update(saasTweets)
+      .set({ retweetCount: sql`${saasTweets.retweetCount} + 1` })
+      .where(eq(saasTweets.id, tweetId));
 
     return c.json({
       message: 'Retweeted!',
@@ -352,3 +348,90 @@ export const retweet = zValidator('param', getTweetSchema, async (res, c) => {
     return c.json(errorFormat(error), 500);
   }
 });
+
+export const quoteTweet = zValidator(
+  'json',
+  newTweetSchema.omit({ media: true }),
+  async (res, c) => {
+    if (!res.success) return c.json(errorFormat(res.error), 400);
+
+    try {
+      const tweetId = c.req.param('tweetId');
+
+      const safeId = getTweetSchema.safeParse({ tweetId });
+      if (!safeId.success) return c.json(errorFormat(safeId.error), 400);
+
+      const { content } = res.data;
+      const authUser = c.get('authUser');
+
+      if (!content?.trim()) {
+        return c.json({ message: 'Quoted tweet must have content' }, 400);
+      }
+
+      // 🔎 Find the original tweet and user
+      const [ogTweet] = await db
+        .select({
+          id: saasTweets.id,
+          content: saasTweets.content,
+          mediaUrl: saasTweets.mediaUrl,
+          createdAt: saasTweets.createdAt,
+          user: {
+            id: saasUsers.id,
+            displayName: saasUsers.displayName,
+            userName: saasUsers.userName,
+            avatarUrl: saasUsers.avatarUrl,
+          },
+        })
+        .from(saasTweets)
+        .innerJoin(saasUsers, eq(saasUsers.id, saasTweets.userId))
+        .where(eq(saasTweets.id, safeId.data.tweetId))
+        .limit(1);
+
+      if (!ogTweet) {
+        return c.json({ message: 'Original tweet not found' }, 404);
+      }
+
+      // 🆕 Create new quote tweet
+      const [newQuote] = await db
+        .insert(saasTweets)
+        .values({
+          userId: authUser.userId,
+          content,
+          type: 'QUOTE',
+          originalTweetId: ogTweet.id,
+        })
+        .returning();
+
+      // 📈 Increment quote count on original tweet
+      await db
+        .update(saasTweets)
+        .set({ quoteCount: sql`${saasTweets.quoteCount} + 1` })
+        .where(eq(saasTweets.id, ogTweet.id));
+
+      // 👤 Get quoting user details
+      const [user] = await db
+        .select({
+          id: saasUsers.id,
+          displayName: saasUsers.displayName,
+          userName: saasUsers.userName,
+        })
+        .from(saasUsers)
+        .where(and(eq(saasUsers.id, authUser.userId), eq(saasUsers.accountId, authUser.accountId)))
+        .limit(1);
+
+      return c.json({
+        message: 'Quoted tweet successfully!',
+        data: {
+          tweet: {
+            ...newQuote,
+            user,
+            originalTweet: ogTweet,
+            originalTweetUser: ogTweet.user,
+          },
+        },
+      });
+    } catch (error) {
+      return c.json(errorFormat(error), 500);
+    }
+  },
+);
