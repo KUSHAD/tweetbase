@@ -1,0 +1,1 @@
+ALTER TABLE "saas_users" ADD COLUMN "tweet_count" integer DEFAULT 0 NOT NULL;

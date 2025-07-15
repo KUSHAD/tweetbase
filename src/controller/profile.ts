@@ -1,5 +1,6 @@
 import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, ne, sql } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
 import { saasUsers } from '../db/schema';
 import { utapi } from '../lib/uploadthing';
@@ -12,177 +13,163 @@ import {
 } from '../validators/profile';
 
 export const updateBasicInfo = zValidator('json', updateBasicInfoSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
-  try {
-    const authUser = c.get('authUser');
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-    const { displayName, bio, website } = res.data;
+  const authUser = c.get('authUser');
+  if (!authUser)
+    throw new HTTPException(401, { message: 'Unauthorized', cause: 'No user session' });
 
-    const [updatedUser] = await db
-      .update(saasUsers)
-      .set({
-        displayName,
-        bio,
-        website,
-      })
-      .where(eq(saasUsers.id, authUser.userId))
-      .returning({
-        id: saasUsers.id,
-        displayName: saasUsers.displayName,
-        userName: saasUsers.userName,
-        avatarUrl: saasUsers.avatarUrl,
-        bio: saasUsers.bio,
-        website: saasUsers.website,
-        followerCount: saasUsers.followerCount,
-        followingCount: saasUsers.followingCount,
-      });
+  const { displayName, bio, website } = res.data;
 
-    return c.json({
-      message: 'Profile updated successfully',
-      data: {
-        user: updatedUser,
-      },
+  const [updatedUser] = await db
+    .update(saasUsers)
+    .set({ displayName, bio, website })
+    .where(eq(saasUsers.id, authUser.userId))
+    .returning({
+      id: saasUsers.id,
+      displayName: saasUsers.displayName,
+      userName: saasUsers.userName,
+      avatarUrl: saasUsers.avatarUrl,
+      bio: saasUsers.bio,
+      website: saasUsers.website,
+      followerCount: saasUsers.followerCount,
+      followingCount: saasUsers.followingCount,
+      tweetCount: saasUsers.tweetCount,
     });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
+
+  return c.json({
+    message: 'Profile updated successfully',
+    data: { user: updatedUser },
+  });
 });
 
 export const updateUsername = zValidator('json', updateUsernameSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
-  try {
-    const authUser = c.get('authUser');
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-    const { userName } = res.data;
+  const authUser = c.get('authUser');
+  if (!authUser)
+    throw new HTTPException(401, { message: 'Unauthorized', cause: 'No user session' });
 
-    const [usernameExists] = await db
-      .select()
-      .from(saasUsers)
-      .where(and(eq(saasUsers.userName, userName), ne(saasUsers.id, authUser.userId)));
+  const { userName } = res.data;
 
-    if (usernameExists) return c.json({ error: 'Username already exists' }, 409);
+  const [usernameExists] = await db
+    .select()
+    .from(saasUsers)
+    .where(and(eq(saasUsers.userName, userName), ne(saasUsers.id, authUser.userId)));
 
-    const [updatedUser] = await db
-      .update(saasUsers)
-      .set({
-        userName,
-      })
-      .where(eq(saasUsers.id, authUser.userId))
-      .returning({
-        id: saasUsers.id,
-        displayName: saasUsers.displayName,
-        userName: saasUsers.userName,
-        avatarUrl: saasUsers.avatarUrl,
-        bio: saasUsers.bio,
-        website: saasUsers.website,
-        followerCount: saasUsers.followerCount,
-        followingCount: saasUsers.followingCount,
-      });
-
-    return c.json({
-      message: 'Username updated successfully',
-      data: {
-        user: updatedUser,
-      },
+  if (usernameExists)
+    throw new HTTPException(409, {
+      message: 'Username already exists',
+      cause: 'userName not unique',
     });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
+
+  const [updatedUser] = await db
+    .update(saasUsers)
+    .set({ userName })
+    .where(eq(saasUsers.id, authUser.userId))
+    .returning({
+      id: saasUsers.id,
+      displayName: saasUsers.displayName,
+      userName: saasUsers.userName,
+      avatarUrl: saasUsers.avatarUrl,
+      bio: saasUsers.bio,
+      website: saasUsers.website,
+      followerCount: saasUsers.followerCount,
+      followingCount: saasUsers.followingCount,
+      tweetCount: saasUsers.tweetCount,
+    });
+
+  return c.json({
+    message: 'Username updated successfully',
+    data: { user: updatedUser },
+  });
 });
 
 export const searchProfiles = zValidator('json', profileSearchSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
-  try {
-    const authUser = c.get('authUser');
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-    const { searchString } = res.data;
+  const authUser = c.get('authUser');
+  if (!authUser)
+    throw new HTTPException(401, { message: 'Unauthorized', cause: 'No user session' });
 
-    const users = await db
-      .select({
-        id: saasUsers.id,
-        displayName: saasUsers.displayName,
-        userName: saasUsers.userName,
-        avatarUrl: saasUsers.avatarUrl,
-        bio: saasUsers.bio,
-        website: saasUsers.website,
-        followerCount: saasUsers.followerCount,
-        followingCount: saasUsers.followingCount,
-        rank: sql<number>`ts_rank(
-          setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
-          setweight(to_tsvector('english', ${saasUsers.displayName}), 'B'),
-          websearch_to_tsquery('english', ${searchString})
-        )`,
-      })
-      .from(saasUsers)
-      .where(
-        and(
-          sql`
-            (
-              setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
-              setweight(to_tsvector('english', ${saasUsers.displayName}), 'B')
-            ) @@ websearch_to_tsquery('english', ${searchString})
-          `,
-          ne(saasUsers.id, authUser.userId),
-        ),
-      )
-      .orderBy((table) => [desc(table.rank)]);
+  const { searchString } = res.data;
 
-    return c.json({
-      message: 'Profiles fetched!',
-      data: {
-        users,
-      },
-    });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
+  const users = await db
+    .select({
+      id: saasUsers.id,
+      displayName: saasUsers.displayName,
+      userName: saasUsers.userName,
+      avatarUrl: saasUsers.avatarUrl,
+      bio: saasUsers.bio,
+      website: saasUsers.website,
+      followerCount: saasUsers.followerCount,
+      followingCount: saasUsers.followingCount,
+      rank: sql<number>`ts_rank(
+        setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
+        setweight(to_tsvector('english', ${saasUsers.displayName}), 'B'),
+        websearch_to_tsquery('english', ${searchString})
+      )`,
+      tweetCount: saasUsers.tweetCount,
+    })
+    .from(saasUsers)
+    .where(
+      and(
+        sql`
+          (
+            setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
+            setweight(to_tsvector('english', ${saasUsers.displayName}), 'B')
+          ) @@ websearch_to_tsquery('english', ${searchString})
+        `,
+        ne(saasUsers.id, authUser.userId),
+      ),
+    )
+    .orderBy((table) => [desc(table.rank)]);
+
+  return c.json({ message: 'Profiles fetched', data: { users } });
 });
 
 export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-  try {
-    const authUser = c.get('authUser');
+  const authUser = c.get('authUser');
+  if (!authUser)
+    throw new HTTPException(401, { message: 'Unauthorized', cause: 'No user session' });
 
-    const { avatar } = res.data;
+  const { avatar } = res.data;
 
-    const [prevUser] = await db
-      .select({
-        avatarUrl: saasUsers.avatarUrl,
-      })
-      .from(saasUsers)
-      .where(eq(saasUsers.id, authUser.userId));
+  const [prevUser] = await db
+    .select({ avatarUrl: saasUsers.avatarUrl })
+    .from(saasUsers)
+    .where(eq(saasUsers.id, authUser.userId));
 
-    if (!prevUser) return c.json({ error: 'Unauthorized' }, 401);
+  if (!prevUser)
+    throw new HTTPException(404, {
+      message: 'User not found',
+      cause: 'Invalid userId in auth context',
+    });
 
-    const uploadedFile = await utapi.uploadFiles(avatar);
+  const uploadedFile = await utapi.uploadFiles(avatar);
 
-    const [user] = await db
-      .update(saasUsers)
-      .set({
-        avatarUrl: uploadedFile.data?.ufsUrl,
-      })
-      .where(eq(saasUsers.id, authUser.userId))
-      .returning({
-        id: saasUsers.id,
-        displayName: saasUsers.displayName,
-        userName: saasUsers.userName,
-        avatarUrl: saasUsers.avatarUrl,
-        bio: saasUsers.bio,
-        website: saasUsers.website,
-        followerCount: saasUsers.followerCount,
-        followingCount: saasUsers.followingCount,
-      });
+  const [user] = await db
+    .update(saasUsers)
+    .set({ avatarUrl: uploadedFile.data?.ufsUrl })
+    .where(eq(saasUsers.id, authUser.userId))
+    .returning({
+      id: saasUsers.id,
+      displayName: saasUsers.displayName,
+      userName: saasUsers.userName,
+      avatarUrl: saasUsers.avatarUrl,
+      bio: saasUsers.bio,
+      website: saasUsers.website,
+      followerCount: saasUsers.followerCount,
+      followingCount: saasUsers.followingCount,
+      tweetCount: saasUsers.tweetCount,
+    });
 
-    if (!prevUser.avatarUrl?.includes('4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE')) {
-      const prevFileKey = getUploadthingFileKey(prevUser.avatarUrl!);
-      await utapi.deleteFiles(prevFileKey);
-
-      return c.json({ message: 'Avatar Uploaded Succesfully!', data: { user } });
-    }
-
-    return c.json({ message: 'Avatar Uploaded Succesfully!', data: { user } });
-  } catch (err) {
-    return c.json(errorFormat(err), 500);
+  const prevKey = prevUser.avatarUrl && getUploadthingFileKey(prevUser.avatarUrl);
+  if (prevKey && !prevKey.includes('4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE')) {
+    await utapi.deleteFiles(prevKey);
   }
+
+  return c.json({ message: 'Avatar uploaded successfully', data: { user } });
 });

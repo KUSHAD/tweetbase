@@ -82,6 +82,7 @@ export const saasUsers = pgTable(
     ),
     bio: varchar('bio', { length: 100 }).default(''),
     website: varchar('website', { length: 100 }).default(''),
+    tweetCount: integer('tweet_count').notNull().default(0),
     followerCount: integer('follower_count').notNull().default(0),
     followingCount: integer('following_count').notNull().default(0),
     accountId: text('account_id')

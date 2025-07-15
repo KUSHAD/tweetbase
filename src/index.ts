@@ -7,6 +7,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 
+import { HTTPException } from 'hono/http-exception';
 import { limiter } from './lib/rate-limit';
 import router from './routes';
 
@@ -50,9 +51,13 @@ app.notFound((c) =>
 );
 
 app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    // Get the custom response
+    return err.getResponse();
+  }
   return c.json(
     {
-      error: 'Server Error',
+      error: err.name,
       message: err.message,
       stack: err.stack,
       requestId: c.get('requestId'),

@@ -1,5 +1,6 @@
 import { zValidator } from '@hono/zod-validator';
 import { and, eq, sql } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
 import { saasTweets, saasUsers } from '../db/schema';
 import { originalTweet, originalTweetUser } from '../lib/db-alias';
@@ -8,430 +9,392 @@ import { errorFormat, getUploadthingFileKey } from '../lib/utils';
 import { getTweetSchema, newTweetSchema } from '../validators/tweet';
 
 export const newTweet = zValidator('form', newTweetSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-  try {
-    const { content, media } = res.data;
+  const { content, media } = res.data;
+  const authUser = c.get('authUser');
 
-    const authUser = c.get('authUser');
+  const uploadedMedia = media ? await utapi.uploadFiles(media) : null;
 
-    let uploadedMedia = null;
-    if (media) {
-      uploadedMedia = await utapi.uploadFiles(media);
-    }
+  const [newTweet] = await db
+    .insert(saasTweets)
+    .values({
+      userId: authUser.userId,
+      content,
+      mediaUrl: uploadedMedia?.data?.ufsUrl ?? null,
+      type: 'TWEET',
+    })
+    .returning();
 
-    const [newTweet] = await db
-      .insert(saasTweets)
-      .values({
-        userId: authUser.userId,
-        content,
-        mediaUrl: uploadedMedia?.data?.ufsUrl ?? null,
-        type: 'TWEET',
-      })
-      .returning();
-
-    const [user] = await db
-      .select({
-        id: saasUsers.id,
-        displayName: saasUsers.displayName,
-        userName: saasUsers.userName,
-      })
-      .from(saasUsers)
-      .where(and(eq(saasUsers.id, authUser.userId), eq(saasUsers.accountId, authUser.accountId)))
-      .limit(1);
-
-    return c.json({
-      message: 'Tweeted!',
-      data: {
-        tweet: {
-          ...newTweet,
-          user,
-          originalTweet: null,
-          originalUser: null,
-        },
-      },
+  const [updatedUser] = await db
+    .update(saasUsers)
+    .set({ tweetCount: sql`${saasUsers.tweetCount} + 1` })
+    .where(eq(saasUsers.id, authUser.userId))
+    .returning({
+      id: saasUsers.id,
+      displayName: saasUsers.displayName,
+      userName: saasUsers.userName,
+      tweetCount: saasUsers.tweetCount,
     });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
+
+  return c.json({
+    message: 'Tweeted!',
+    data: {
+      tweet: {
+        ...newTweet,
+        user: updatedUser,
+        originalTweet: null,
+        originalTweetUser: null,
+      },
+    },
+  });
 });
 
 export const getTweet = zValidator('param', getTweetSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
-  try {
-    const { tweetId } = res.data;
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-    const [tweet] = await db
-      .select({
-        // Tweet fields
-        id: saasTweets.id,
-        content: saasTweets.content,
-        mediaUrl: saasTweets.mediaUrl,
-        type: saasTweets.type,
-        likeCount: saasTweets.likeCount,
-        commentCount: saasTweets.commentCount,
-        quoteCount: saasTweets.quoteCount,
-        retweetCount: saasTweets.retweetCount,
-        createdAt: saasTweets.createdAt,
-        updatedAt: saasTweets.updatedAt,
-        user: {
-          id: saasUsers.id,
-          displayName: saasUsers.displayName,
-          userName: saasUsers.userName,
-          avatarUrl: saasUsers.avatarUrl,
-        },
-        originalTweet: {
-          id: originalTweet.id,
-          content: originalTweet.content,
-          mediaUrl: originalTweet.mediaUrl,
-          createdAt: originalTweet.createdAt,
-        },
-        originalUser: {
-          id: originalTweetUser.id,
-          displayName: originalTweetUser.displayName,
-          userName: originalTweetUser.userName,
-          avatarUrl: originalTweetUser.avatarUrl,
-        },
-      })
-      .from(saasTweets)
-      .innerJoin(saasUsers, eq(saasTweets.userId, saasUsers.id))
-      .leftJoin(originalTweet, eq(saasTweets.originalTweetId, originalTweet.id))
-      .leftJoin(originalTweetUser, eq(originalTweet.userId, originalTweetUser.id))
-      .where(eq(saasTweets.id, tweetId))
-      .limit(1);
+  const { tweetId } = res.data;
 
-    if (!tweet) return c.json({ message: 'No tweet found' }, 404);
-
-    return c.json({
-      message: 'Tweet fetched!',
-      data: {
-        tweet,
-      },
-    });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
-});
-
-export const deleteTweet = zValidator('param', getTweetSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
-
-  try {
-    const authUser = c.get('authUser');
-    const { tweetId } = res.data;
-
-    const [tweet] = await db
-      .select({
-        id: saasTweets.id,
-        userId: saasTweets.userId,
-        mediaUrl: saasTweets.mediaUrl,
-        originalTweetId: saasTweets.originalTweetId,
-        type: saasTweets.type,
-      })
-      .from(saasTweets)
-      .where(and(eq(saasTweets.id, tweetId), eq(saasTweets.userId, authUser.userId)))
-      .limit(1);
-
-    if (!tweet) {
-      return c.json({ message: 'Tweet not found with the associated user' }, 400);
-    }
-
-    // 🧹 Clean up media
-    if (tweet.mediaUrl) {
-      const fileKey = getUploadthingFileKey(tweet.mediaUrl);
-      await utapi.deleteFiles(fileKey);
-    }
-
-    // ⬇️ Optional: Decrement parent tweet counters if this is a quote or retweet
-    if (tweet.originalTweetId && tweet.type !== 'TWEET') {
-      const field =
-        tweet.type === 'RETWEET'
-          ? saasTweets.retweetCount
-          : tweet.type === 'QUOTE'
-            ? saasTweets.quoteCount
-            : null;
-
-      if (field) {
-        await db
-          .update(saasTweets)
-          .set({ [field.name]: sql`${field} - 1` })
-          .where(eq(saasTweets.id, tweet.originalTweetId));
-      }
-    }
-
-    await db.delete(saasTweets).where(eq(saasTweets.id, tweetId));
-
-    return c.json({
-      message: 'Tweet Deleted!',
-      data: { tweetId },
-    });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
-});
-
-export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
-
-  try {
-    const tweetId = c.req.param('tweetId');
-
-    const safeId = getTweetSchema.safeParse({ tweetId });
-
-    if (!safeId.success) return c.json(errorFormat(safeId.error), 400);
-
-    const authUser = c.get('authUser');
-    const { content, media } = res.data;
-
-    if (!tweetId) {
-      return c.json({ message: 'Missing tweetId in route params' }, 400);
-    }
-
-    const [tweet] = await db
-      .select({
-        id: saasTweets.id,
-        mediaUrl: saasTweets.mediaUrl,
-        type: saasTweets.type,
-      })
-      .from(saasTweets)
-      .where(and(eq(saasTweets.id, safeId.data.tweetId), eq(saasTweets.userId, authUser.userId)))
-      .limit(1);
-
-    if (!tweet) {
-      return c.json({ message: 'Tweet not found with the associated user' }, 400);
-    }
-
-    // 💬 Rules per type
-    if (tweet.type === 'RETWEET' && (content || media)) {
-      return c.json({ message: 'Retweets cannot have content or media' }, 400);
-    }
-
-    if (tweet.type === 'QUOTE' && media) {
-      return c.json({ message: 'Quoted tweets cannot have media' }, 400);
-    }
-
-    if (!content && !media) {
-      return c.json({ message: 'Tweet must have content or media' }, 400);
-    }
-
-    // 📤 Upload new media if present
-    let newMediaUrl: string | null = null;
-    if (media) {
-      const upload = await utapi.uploadFiles(media);
-      if (!upload?.data?.ufsUrl) {
-        return c.json({ message: 'Media upload failed' }, 500);
-      }
-      newMediaUrl = upload.data.ufsUrl;
-    }
-
-    // 🧹 Remove old media if replaced
-    if (tweet.mediaUrl && newMediaUrl) {
-      const prevKey = getUploadthingFileKey(tweet.mediaUrl);
-      await utapi.deleteFiles(prevKey);
-    }
-
-    // 🔁 Update
-    const [updatedTweet] = await db
-      .update(saasTweets)
-      .set({
-        content,
-        mediaUrl: newMediaUrl ?? (media ? null : tweet.mediaUrl),
-      })
-      .where(and(eq(saasTweets.id, safeId.data.tweetId), eq(saasTweets.userId, authUser.userId)))
-      .returning();
-
-    // 👤 Fetch user again (lightweight)
-    const [user] = await db
-      .select({
+  const [tweet] = await db
+    .select({
+      id: saasTweets.id,
+      content: saasTweets.content,
+      mediaUrl: saasTweets.mediaUrl,
+      type: saasTweets.type,
+      likeCount: saasTweets.likeCount,
+      commentCount: saasTweets.commentCount,
+      quoteCount: saasTweets.quoteCount,
+      retweetCount: saasTweets.retweetCount,
+      createdAt: saasTweets.createdAt,
+      updatedAt: saasTweets.updatedAt,
+      user: {
         id: saasUsers.id,
         displayName: saasUsers.displayName,
         userName: saasUsers.userName,
-      })
-      .from(saasUsers)
-      .where(and(eq(saasUsers.id, authUser.userId), eq(saasUsers.accountId, authUser.accountId)))
-      .limit(1);
-
-    return c.json({
-      message: 'Tweet Updated!',
-      data: {
-        tweet: {
-          ...updatedTweet,
-          user,
-        },
+        avatarUrl: saasUsers.avatarUrl,
       },
+      originalTweet: {
+        id: originalTweet.id,
+        content: originalTweet.content,
+        mediaUrl: originalTweet.mediaUrl,
+        createdAt: originalTweet.createdAt,
+      },
+      originalTweetUser: {
+        id: originalTweetUser.id,
+        displayName: originalTweetUser.displayName,
+        userName: originalTweetUser.userName,
+        avatarUrl: originalTweetUser.avatarUrl,
+      },
+    })
+    .from(saasTweets)
+    .innerJoin(saasUsers, eq(saasTweets.userId, saasUsers.id))
+    .leftJoin(originalTweet, eq(saasTweets.originalTweetId, originalTweet.id))
+    .leftJoin(originalTweetUser, eq(originalTweet.userId, originalTweetUser.id))
+    .where(eq(saasTweets.id, tweetId))
+    .limit(1);
+
+  if (!tweet)
+    throw new HTTPException(404, { message: 'Tweet not found', cause: 'Invalid tweetId' });
+
+  return c.json({
+    message: 'Tweet fetched!',
+    data: { tweet },
+  });
+});
+
+export const deleteTweet = zValidator('param', getTweetSchema, async (res, c) => {
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
+
+  const { tweetId } = res.data;
+  const authUser = c.get('authUser');
+
+  const [tweet] = await db
+    .select({
+      id: saasTweets.id,
+      userId: saasTweets.userId,
+      mediaUrl: saasTweets.mediaUrl,
+      originalTweetId: saasTweets.originalTweetId,
+      type: saasTweets.type,
+    })
+    .from(saasTweets)
+    .where(and(eq(saasTweets.id, tweetId), eq(saasTweets.userId, authUser.userId)))
+    .limit(1);
+
+  if (!tweet)
+    throw new HTTPException(404, {
+      message: 'Tweet not found or not owned by user',
+      cause: tweetId,
     });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
+
+  if (tweet.mediaUrl) {
+    const key = getUploadthingFileKey(tweet.mediaUrl);
+    await utapi.deleteFiles(key);
   }
+
+  if (tweet.originalTweetId && tweet.type !== 'TWEET') {
+    const field =
+      tweet.type === 'RETWEET'
+        ? saasTweets.retweetCount
+        : tweet.type === 'QUOTE'
+          ? saasTweets.quoteCount
+          : null;
+
+    if (field) {
+      await db
+        .update(saasTweets)
+        .set({ [field.name]: sql`${field} - 1` })
+        .where(eq(saasTweets.id, tweet.originalTweetId));
+    }
+  }
+
+  await db.delete(saasTweets).where(eq(saasTweets.id, tweetId));
+
+  await db
+    .update(saasUsers)
+    .set({ tweetCount: sql`${saasUsers.tweetCount} - 1` })
+    .where(eq(saasUsers.id, authUser.userId));
+
+  return c.json({ message: 'Tweet deleted', data: { tweetId } });
+});
+
+export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
+
+  const tweetId = c.req.param('tweetId');
+  const authUser = c.get('authUser');
+
+  const parsed = getTweetSchema.safeParse({ tweetId });
+  if (!parsed.success) throw new HTTPException(400, errorFormat(parsed.error));
+
+  const [tweet] = await db
+    .select({ id: saasTweets.id, mediaUrl: saasTweets.mediaUrl, type: saasTweets.type })
+    .from(saasTweets)
+    .where(and(eq(saasTweets.id, parsed.data.tweetId), eq(saasTweets.userId, authUser.userId)))
+    .limit(1);
+
+  if (!tweet)
+    throw new HTTPException(404, {
+      message: 'Tweet not found or not owned by user',
+      cause: tweetId,
+    });
+
+  const { content, media } = res.data;
+
+  if (tweet.type === 'RETWEET' && (content || media))
+    throw new HTTPException(400, { message: 'Retweets cannot be edited', cause: 'Type violation' });
+
+  if (tweet.type === 'QUOTE' && media)
+    throw new HTTPException(400, {
+      message: 'Quotes cannot include media',
+      cause: 'Type violation',
+    });
+
+  if (!content && !media)
+    throw new HTTPException(400, {
+      message: 'Tweet must have content or media',
+      cause: 'Empty content',
+    });
+
+  let newMediaUrl: string | null = null;
+  if (media) {
+    const upload = await utapi.uploadFiles(media);
+    newMediaUrl = upload?.data?.ufsUrl ?? null;
+
+    if (!newMediaUrl)
+      throw new HTTPException(500, { message: 'Media upload failed', cause: 'uploadthing' });
+
+    if (tweet.mediaUrl) {
+      const prevKey = getUploadthingFileKey(tweet.mediaUrl);
+      await utapi.deleteFiles(prevKey);
+    }
+  }
+
+  const [updatedTweet] = await db
+    .update(saasTweets)
+    .set({
+      content,
+      mediaUrl: newMediaUrl ?? (media ? null : tweet.mediaUrl),
+    })
+    .where(and(eq(saasTweets.id, parsed.data.tweetId), eq(saasTweets.userId, authUser.userId)))
+    .returning();
+
+  const [user] = await db
+    .select({
+      id: saasUsers.id,
+      displayName: saasUsers.displayName,
+      userName: saasUsers.userName,
+    })
+    .from(saasUsers)
+    .where(and(eq(saasUsers.id, authUser.userId), eq(saasUsers.accountId, authUser.accountId)))
+    .limit(1);
+
+  return c.json({
+    message: 'Tweet updated!',
+    data: {
+      tweet: {
+        ...updatedTweet,
+        user,
+      },
+    },
+  });
 });
 
 export const retweet = zValidator('param', getTweetSchema, async (res, c) => {
-  if (!res.success) return c.json(errorFormat(res.error), 400);
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-  try {
-    const { tweetId } = res.data;
-    const authUser = c.get('authUser');
+  const { tweetId } = res.data;
+  const authUser = c.get('authUser');
 
-    // 1. Fetch original tweet + author
-    const [ogTweet] = await db
-      .select({
-        id: saasTweets.id,
-        userId: saasTweets.userId,
-        content: saasTweets.content,
-        mediaUrl: saasTweets.mediaUrl,
-        retweetCount: saasTweets.retweetCount,
-        createdAt: saasTweets.createdAt,
-        user: {
-          id: saasUsers.id,
-          displayName: saasUsers.displayName,
-          userName: saasUsers.userName,
-          avatarUrl: saasUsers.avatarUrl,
-        },
-      })
-      .from(saasTweets)
-      .where(eq(saasTweets.id, tweetId))
-      .innerJoin(saasUsers, eq(saasUsers.id, saasTweets.userId))
-      .limit(1);
-
-    if (!ogTweet) {
-      return c.json({ message: 'Tweet not found' }, 404);
-    }
-
-    if (ogTweet.userId === authUser.userId) {
-      return c.json({ message: 'You cannot retweet your own tweet' }, 400);
-    }
-
-    // 2. Check if already retweeted
-    const [alreadyRetweeted] = await db
-      .select({ id: saasTweets.id })
-      .from(saasTweets)
-      .where(
-        and(
-          eq(saasTweets.userId, authUser.userId),
-          eq(saasTweets.originalTweetId, tweetId),
-          eq(saasTweets.type, 'RETWEET'),
-        ),
-      );
-
-    if (alreadyRetweeted) {
-      return c.json({ message: 'Already retweeted this tweet' }, 400);
-    }
-
-    // 3. Create retweet and update count atomically
-    const [retweet] = await db
-      .insert(saasTweets)
-      .values({
-        userId: authUser.userId,
-        type: 'RETWEET',
-        originalTweetId: tweetId,
-        content: null,
-        mediaUrl: null,
-      })
-      .returning();
-
-    await db
-      .update(saasTweets)
-      .set({ retweetCount: sql`${saasTweets.retweetCount} + 1` })
-      .where(eq(saasTweets.id, tweetId));
-
-    return c.json({
-      message: 'Retweeted!',
-      data: {
-        tweet: {
-          ...retweet,
-          originalTweet: ogTweet,
-          originalTweetUser: ogTweet.user,
-        },
+  const [ogTweet] = await db
+    .select({
+      id: saasTweets.id,
+      userId: saasTweets.userId,
+      content: saasTweets.content,
+      mediaUrl: saasTweets.mediaUrl,
+      retweetCount: saasTweets.retweetCount,
+      createdAt: saasTweets.createdAt,
+      user: {
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        avatarUrl: saasUsers.avatarUrl,
       },
+    })
+    .from(saasTweets)
+    .where(eq(saasTweets.id, tweetId))
+    .innerJoin(saasUsers, eq(saasUsers.id, saasTweets.userId))
+    .limit(1);
+
+  if (!ogTweet)
+    throw new HTTPException(404, { message: 'Original tweet not found', cause: tweetId });
+
+  if (ogTweet.userId === authUser.userId)
+    throw new HTTPException(400, {
+      message: 'Cannot retweet your own tweet',
+      cause: 'Self-retweet',
     });
-  } catch (error) {
-    return c.json(errorFormat(error), 500);
-  }
+
+  const [alreadyRetweeted] = await db
+    .select({ id: saasTweets.id })
+    .from(saasTweets)
+    .where(
+      and(
+        eq(saasTweets.userId, authUser.userId),
+        eq(saasTweets.originalTweetId, tweetId),
+        eq(saasTweets.type, 'RETWEET'),
+      ),
+    );
+
+  if (alreadyRetweeted)
+    throw new HTTPException(400, { message: 'Already retweeted', cause: 'Duplicate retweet' });
+
+  const [retweet] = await db
+    .insert(saasTweets)
+    .values({
+      userId: authUser.userId,
+      type: 'RETWEET',
+      originalTweetId: tweetId,
+    })
+    .returning();
+
+  await db
+    .update(saasTweets)
+    .set({ retweetCount: sql`${saasTweets.retweetCount} + 1` })
+    .where(eq(saasTweets.id, tweetId));
+
+  await db
+    .update(saasUsers)
+    .set({ tweetCount: sql`${saasUsers.tweetCount} + 1` })
+    .where(eq(saasUsers.id, authUser.userId));
+
+  return c.json({
+    message: 'Retweeted!',
+    data: {
+      tweet: {
+        ...retweet,
+        originalTweet: ogTweet,
+        originalTweetUser: ogTweet.user,
+      },
+    },
+  });
 });
 
 export const quoteTweet = zValidator(
   'json',
   newTweetSchema.omit({ media: true }),
   async (res, c) => {
-    if (!res.success) return c.json(errorFormat(res.error), 400);
+    if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-    try {
-      const tweetId = c.req.param('tweetId');
+    const tweetId = c.req.param('tweetId');
+    const safeId = getTweetSchema.safeParse({ tweetId });
+    if (!safeId.success) throw new HTTPException(400, errorFormat(safeId.error));
 
-      const safeId = getTweetSchema.safeParse({ tweetId });
-      if (!safeId.success) return c.json(errorFormat(safeId.error), 400);
+    const authUser = c.get('authUser');
+    const { content } = res.data;
 
-      const { content } = res.data;
-      const authUser = c.get('authUser');
+    if (!content?.trim())
+      throw new HTTPException(400, {
+        message: 'Quoted tweet must have content',
+        cause: 'Empty content',
+      });
 
-      if (!content?.trim()) {
-        return c.json({ message: 'Quoted tweet must have content' }, 400);
-      }
-
-      // 🔎 Find the original tweet and user
-      const [ogTweet] = await db
-        .select({
-          id: saasTweets.id,
-          content: saasTweets.content,
-          mediaUrl: saasTweets.mediaUrl,
-          createdAt: saasTweets.createdAt,
-          user: {
-            id: saasUsers.id,
-            displayName: saasUsers.displayName,
-            userName: saasUsers.userName,
-            avatarUrl: saasUsers.avatarUrl,
-          },
-        })
-        .from(saasTweets)
-        .innerJoin(saasUsers, eq(saasUsers.id, saasTweets.userId))
-        .where(eq(saasTweets.id, safeId.data.tweetId))
-        .limit(1);
-
-      if (!ogTweet) {
-        return c.json({ message: 'Original tweet not found' }, 404);
-      }
-
-      // 🆕 Create new quote tweet
-      const [newQuote] = await db
-        .insert(saasTweets)
-        .values({
-          userId: authUser.userId,
-          content,
-          type: 'QUOTE',
-          originalTweetId: ogTweet.id,
-        })
-        .returning();
-
-      // 📈 Increment quote count on original tweet
-      await db
-        .update(saasTweets)
-        .set({ quoteCount: sql`${saasTweets.quoteCount} + 1` })
-        .where(eq(saasTweets.id, ogTweet.id));
-
-      // 👤 Get quoting user details
-      const [user] = await db
-        .select({
+    const [ogTweet] = await db
+      .select({
+        id: saasTweets.id,
+        content: saasTweets.content,
+        mediaUrl: saasTweets.mediaUrl,
+        createdAt: saasTweets.createdAt,
+        user: {
           id: saasUsers.id,
           displayName: saasUsers.displayName,
           userName: saasUsers.userName,
-        })
-        .from(saasUsers)
-        .where(and(eq(saasUsers.id, authUser.userId), eq(saasUsers.accountId, authUser.accountId)))
-        .limit(1);
-
-      return c.json({
-        message: 'Quoted tweet successfully!',
-        data: {
-          tweet: {
-            ...newQuote,
-            user,
-            originalTweet: ogTweet,
-            originalTweetUser: ogTweet.user,
-          },
+          avatarUrl: saasUsers.avatarUrl,
         },
+      })
+      .from(saasTweets)
+      .innerJoin(saasUsers, eq(saasUsers.id, saasTweets.userId))
+      .where(eq(saasTweets.id, safeId.data.tweetId))
+      .limit(1);
+
+    if (!ogTweet)
+      throw new HTTPException(404, { message: 'Original tweet not found', cause: tweetId });
+
+    const [newQuote] = await db
+      .insert(saasTweets)
+      .values({
+        userId: authUser.userId,
+        content,
+        type: 'QUOTE',
+        originalTweetId: ogTweet.id,
+      })
+      .returning();
+
+    await db
+      .update(saasTweets)
+      .set({ quoteCount: sql`${saasTweets.quoteCount} + 1` })
+      .where(eq(saasTweets.id, ogTweet.id));
+
+    const [updatedUser] = await db
+      .update(saasUsers)
+      .set({ tweetCount: sql`${saasUsers.tweetCount} + 1` })
+      .where(eq(saasUsers.id, authUser.userId))
+      .returning({
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        tweetCount: saasUsers.tweetCount,
       });
-    } catch (error) {
-      return c.json(errorFormat(error), 500);
-    }
+
+    return c.json({
+      message: 'Quoted tweet successfully!',
+      data: {
+        tweet: {
+          ...newQuote,
+          user: updatedUser,
+          originalTweet: ogTweet,
+          originalTweetUser: ogTweet.user,
+        },
+      },
+    });
   },
 );
