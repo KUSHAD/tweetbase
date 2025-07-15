@@ -20,7 +20,19 @@ const QUOTE_PROBABILITY = 0.1;
 const LIKE_PROBABILITY = 0.4;
 const COMMENT_PROBABILITY = 0.4;
 
-async function seed() {
+interface UserSeedData {
+  id: string;
+  accountId: string;
+  displayName: string;
+  userName: string;
+  avatarUrl: string;
+  bio: string;
+  website: string;
+  followerCount: number;
+  followingCount: number;
+}
+
+async function seed(): Promise<void> {
   console.log('🧼 Clearing old data...');
   await db.delete(saasTweetLikes);
   await db.delete(saasTweetComments);
@@ -33,46 +45,39 @@ async function seed() {
 
   const passwordHash = await bcrypt.hash('12345678', 10);
 
-  const accounts = [];
-  const users = [];
-
-  for (let i = 0; i < TOTAL_USERS; i++) {
+  const users: UserSeedData[] = Array.from({ length: TOTAL_USERS }).map(() => {
     const accountId = createId();
-    const userId = createId();
+    const id = createId();
+    return {
+      id,
+      accountId,
+      displayName: faker.person.fullName(),
+      userName: faker.internet.userName().toLowerCase().slice(0, 15),
+      avatarUrl: faker.image.avatarGitHub(),
+      bio: faker.lorem.sentence(5),
+      website: faker.internet.url(),
+      followerCount: 0,
+      followingCount: 0,
+    };
+  });
 
-    accounts.push({
+  await db.insert(saasAccounts).values(
+    users.map(({ accountId }) => ({
       id: accountId,
       email: faker.internet.email(),
       emailVerified: true,
       passwordHash,
-    });
+    })),
+  );
 
-    users.push({
-      id: userId,
-      displayName: faker.person.fullName(),
-      userName: faker.internet.userName().toLowerCase().slice(0, 15),
-      avatarUrl: faker.image.avatar(),
-      bio: faker.lorem.sentence(5),
-      website: faker.internet.url(),
-      accountId,
-      followerCount: 0,
-      followingCount: 0,
-    });
-  }
-
-  await db.insert(saasAccounts).values(accounts);
   await db.insert(saasUsers).values(users);
   console.log('👥 Users and accounts created');
 
-  // 👥 Follow relationships
   const follows = [];
   for (const follower of users) {
     for (const following of users) {
       if (follower.id !== following.id && Math.random() < FOLLOW_PROBABILITY) {
-        follows.push({
-          followerId: follower.id,
-          followingId: following.id,
-        });
+        follows.push({ followerId: follower.id, followingId: following.id });
         follower.followingCount++;
         following.followerCount++;
       }
@@ -94,19 +99,22 @@ async function seed() {
   console.log(`🔗 ${follows.length} follows created`);
 
   const tweets = [];
+  const likes = [];
+  const quoteTweets = [];
+  const retweets = [];
+  const comments = [];
 
-  // Normal tweets
   for (const user of users) {
     for (let i = 0; i < TWEETS_PER_USER; i++) {
+      const tweetId = createId();
       const isMedia = Math.random() < 0.4;
-      const mediaUrl = isMedia ? faker.image.urlLoremFlickr() : null;
 
       tweets.push({
-        id: createId(),
+        id: tweetId,
         userId: user.id,
         type: 'TWEET' as const,
         content: faker.lorem.sentence(),
-        mediaUrl,
+        mediaUrl: isMedia ? faker.image.urlPicsumPhotos() : null,
         originalTweetId: null,
         likeCount: 0,
         retweetCount: 0,
@@ -117,26 +125,19 @@ async function seed() {
   }
 
   await db.insert(saasTweets).values(tweets);
-  console.log(`📝 ${tweets.length} original tweets created`);
-
-  const likes = [];
-  const quoteTweets = [];
-  const retweetEntries = [];
-  const comments = [];
+  console.log(`📝 ${tweets.length} tweets created`);
 
   for (const tweet of tweets) {
     for (const user of users) {
       if (user.id === tweet.userId) continue;
 
-      // ❤️ Like
       if (Math.random() < LIKE_PROBABILITY) {
         likes.push({ userId: user.id, tweetId: tweet.id });
         tweet.likeCount++;
       }
 
-      // 🔁 Retweet
       if (Math.random() < RETWEET_PROBABILITY) {
-        retweetEntries.push({
+        retweets.push({
           id: createId(),
           userId: user.id,
           type: 'RETWEET' as const,
@@ -151,7 +152,6 @@ async function seed() {
         tweet.retweetCount++;
       }
 
-      // 🗣️ Quote
       if (Math.random() < QUOTE_PROBABILITY) {
         quoteTweets.push({
           id: createId(),
@@ -168,7 +168,6 @@ async function seed() {
         tweet.quoteCount++;
       }
 
-      // 💬 Comment
       if (Math.random() < COMMENT_PROBABILITY) {
         comments.push({
           id: createId(),
@@ -181,17 +180,8 @@ async function seed() {
     }
   }
 
-  // Insert quote tweets separately
-  if (quoteTweets.length) {
-    await db.insert(saasTweets).values(quoteTweets);
-    console.log(`🗣️ ${quoteTweets.length} quote tweets created`);
-  }
-
-  if (retweetEntries.length) {
-    await db.insert(saasTweets).values(retweetEntries);
-    console.log(`🔁 ${retweetEntries.length} retweets created`);
-  }
-
+  if (retweets.length) await db.insert(saasTweets).values(retweets);
+  if (quoteTweets.length) await db.insert(saasTweets).values(quoteTweets);
   if (likes.length) await db.insert(saasTweetLikes).values(likes);
   if (comments.length) await db.insert(saasTweetComments).values(comments);
 
@@ -210,6 +200,8 @@ async function seed() {
   );
 
   console.log(`❤️ ${likes.length} likes`);
+  console.log(`🔁 ${retweets.length} retweets`);
+  console.log(`🗣️ ${quoteTweets.length} quotes`);
   console.log(`💬 ${comments.length} comments`);
   console.log('✅ Seeding complete!');
 }
