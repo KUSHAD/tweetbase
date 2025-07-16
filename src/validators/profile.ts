@@ -40,3 +40,7 @@ export const updateAvatarSchema = z.object({
     .max(1000000, 'Max 1MB')
     .mime(['image/gif', 'image/jpeg', 'image/png', 'image/svg+xml', 'image/webp']),
 });
+
+export const getProfileSchema = z.object({
+  userId: z.cuid2(),
+});

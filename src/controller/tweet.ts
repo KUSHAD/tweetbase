@@ -1,12 +1,14 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
 import { saasTweets, saasUsers } from '../db/schema';
 import { originalTweet, originalTweetUser } from '../lib/db-alias';
 import { utapi } from '../lib/uploadthing';
 import { errorFormat, getUploadthingFileKey } from '../lib/utils';
+import { getProfileSchema } from '../validators/profile';
 import { getTweetSchema, newTweetSchema } from '../validators/tweet';
+import { paginationSchema } from '../validators/utils';
 
 export const newTweet = zValidator('form', newTweetSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
@@ -398,3 +400,64 @@ export const quoteTweet = zValidator(
     });
   },
 );
+
+export const getUserTweets = zValidator('param', getProfileSchema, async (res, c) => {
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
+
+  const { userId } = res.data;
+
+  const parsedPagination = paginationSchema.safeParse({
+    limit: c.req.query('limit'),
+    offset: c.req.query('offset'),
+  });
+
+  if (!parsedPagination.success) throw new HTTPException(400, errorFormat(parsedPagination.error));
+
+  const tweets = await db
+    .select({
+      id: saasTweets.id,
+      content: saasTweets.content,
+      mediaUrl: saasTweets.mediaUrl,
+      type: saasTweets.type,
+      likeCount: saasTweets.likeCount,
+      commentCount: saasTweets.commentCount,
+      quoteCount: saasTweets.quoteCount,
+      retweetCount: saasTweets.retweetCount,
+      createdAt: saasTweets.createdAt,
+      updatedAt: saasTweets.updatedAt,
+      user: {
+        id: saasUsers.id,
+        displayName: saasUsers.displayName,
+        userName: saasUsers.userName,
+        avatarUrl: saasUsers.avatarUrl,
+      },
+      originalTweet: {
+        id: originalTweet.id,
+        content: originalTweet.content,
+        mediaUrl: originalTweet.mediaUrl,
+        createdAt: originalTweet.createdAt,
+      },
+      originalTweetUser: {
+        id: originalTweetUser.id,
+        displayName: originalTweetUser.displayName,
+        userName: originalTweetUser.userName,
+        avatarUrl: originalTweetUser.avatarUrl,
+      },
+    })
+    .from(saasTweets)
+    .innerJoin(saasUsers, eq(saasTweets.userId, saasUsers.id))
+    .leftJoin(originalTweet, eq(saasTweets.originalTweetId, originalTweet.id))
+    .leftJoin(originalTweetUser, eq(originalTweet.userId, originalTweetUser.id))
+    .where(eq(saasTweets.userId, userId))
+    .orderBy((t) => desc(t.createdAt))
+    .offset(parsedPagination.data.offset)
+    .limit(parsedPagination.data.limit + 1);
+
+  const hasMore = tweets.length > parsedPagination.data.limit;
+  const data = hasMore ? tweets.slice(0, -1) : tweets;
+
+  return c.json({
+    message: 'Tweets fetched successfully',
+    data: { tweets: data, hasMore, nextOffset: parsedPagination.data.offset + data.length },
+  });
+});

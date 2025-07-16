@@ -53,13 +53,23 @@ app.notFound((c) =>
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
     // Get the custom response
-    return err.getResponse();
+    return c.json(
+      {
+        error: err.name,
+        message: err.getResponse(),
+        stack: err.stack,
+        cause: err.cause,
+        requestId: c.get('requestId'),
+      },
+      err.status,
+    );
   }
   return c.json(
     {
       error: err.name,
       message: err.message,
       stack: err.stack,
+      cause: err.cause,
       requestId: c.get('requestId'),
     },
     500,

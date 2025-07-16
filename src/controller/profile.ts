@@ -6,6 +6,7 @@ import { saasUsers } from '../db/schema';
 import { utapi } from '../lib/uploadthing';
 import { errorFormat, getUploadthingFileKey } from '../lib/utils';
 import {
+  getProfileSchema,
   profileSearchSchema,
   updateAvatarSchema,
   updateBasicInfoSchema,
@@ -85,7 +86,7 @@ export const updateUsername = zValidator('json', updateUsernameSchema, async (re
   });
 });
 
-export const searchProfiles = zValidator('json', profileSearchSchema, async (res, c) => {
+export const searchProfiles = zValidator('query', profileSearchSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const authUser = c.get('authUser');
@@ -172,4 +173,34 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
   }
 
   return c.json({ message: 'Avatar uploaded successfully', data: { user } });
+});
+
+export const getProfile = zValidator('param', getProfileSchema, async (res, c) => {
+  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
+
+  const { userId } = res.data;
+
+  const [user] = await db
+    .select({
+      id: saasUsers.id,
+      displayName: saasUsers.displayName,
+      userName: saasUsers.userName,
+      avatarUrl: saasUsers.avatarUrl,
+      bio: saasUsers.bio,
+      website: saasUsers.website,
+      followerCount: saasUsers.followerCount,
+      followingCount: saasUsers.followingCount,
+      tweetCount: saasUsers.tweetCount,
+    })
+    .from(saasUsers)
+    .where(eq(saasUsers.id, userId))
+    .limit(1);
+
+  if (!user)
+    throw new HTTPException(404, {
+      message: 'No user found',
+      cause: 'No user found with the provided user id',
+    });
+
+  return c.json({ message: 'Profile fetched succesfully', data: { user } });
 });

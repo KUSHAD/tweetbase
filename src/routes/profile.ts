@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import {
+  getProfile,
   searchProfiles,
   updateAvatar,
   updateBasicInfo,
@@ -13,5 +14,6 @@ profileRouter.patch('/basic-info', authMiddleware, updateBasicInfo);
 profileRouter.patch('/username', authMiddleware, updateUsername);
 profileRouter.get('/search', authMiddleware, searchProfiles);
 profileRouter.patch('/avatar', authMiddleware, updateAvatar);
+profileRouter.get('/:userId', getProfile);
 
 export default profileRouter;

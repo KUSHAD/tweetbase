@@ -6,6 +6,7 @@ import { db } from '../db';
 import { saasFollows, saasUsers } from '../db/schema';
 import { errorFormat } from '../lib/utils';
 import { followSchema } from '../validators/network';
+import { paginationSchema } from '../validators/utils';
 
 export const followUser = zValidator('json', followSchema, async (result, c) => {
   if (!result.success) throw new HTTPException(400, errorFormat(result.error));
@@ -78,6 +79,14 @@ export const getFollowers = zValidator('param', followSchema, async (res, c) => 
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { targetUserId } = res.data;
+
+  const parsedPagination = paginationSchema.safeParse({
+    limit: c.req.query('limit'),
+    offset: c.req.query('offset'),
+  });
+
+  if (!parsedPagination.success) throw new HTTPException(400, errorFormat(parsedPagination.error));
+
   const authUser = c.get('authUser');
 
   const followers = await db
@@ -95,11 +104,17 @@ export const getFollowers = zValidator('param', followSchema, async (res, c) => 
     })
     .from(saasFollows)
     .innerJoin(saasUsers, eq(saasFollows.followerId, saasUsers.id))
-    .where(eq(saasFollows.followingId, targetUserId));
+    .where(eq(saasFollows.followingId, targetUserId))
+    .orderBy(() => [desc(saasFollows.createdAt), desc(saasUsers.id)])
+    .offset(parsedPagination.data.offset)
+    .limit(parsedPagination.data.limit + 1);
+
+  const hasMore = followers.length > parsedPagination.data.limit;
+  const data = hasMore ? followers.slice(0, -1) : followers;
 
   return c.json({
     message: 'Followers fetched successfully',
-    data: { followers },
+    data: { followers: data, hasMore, nextOffset: parsedPagination.data.offset + data.length },
   });
 });
 
@@ -107,6 +122,14 @@ export const getFollowing = zValidator('param', followSchema, async (res, c) => 
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { targetUserId } = res.data;
+
+  const parsedPagination = paginationSchema.safeParse({
+    limit: c.req.query('limit'),
+    offset: c.req.query('offset'),
+  });
+
+  if (!parsedPagination.success) throw new HTTPException(400, errorFormat(parsedPagination.error));
+
   const authUser = c.get('authUser');
 
   const following = await db
@@ -124,11 +147,17 @@ export const getFollowing = zValidator('param', followSchema, async (res, c) => 
     })
     .from(saasFollows)
     .innerJoin(saasUsers, eq(saasFollows.followingId, saasUsers.id))
-    .where(eq(saasFollows.followerId, targetUserId));
+    .where(eq(saasFollows.followerId, targetUserId))
+    .orderBy(() => [desc(saasFollows.createdAt), desc(saasUsers.id)])
+    .offset(parsedPagination.data.offset)
+    .limit(parsedPagination.data.limit + 1);
+
+  const hasMore = following.length > parsedPagination.data.limit;
+  const data = hasMore ? following.slice(0, -1) : following;
 
   return c.json({
     message: 'Following fetched successfully',
-    data: { following },
+    data: { following: data, hasMore, nextOffset: parsedPagination.data.offset + data.length },
   });
 });
 
