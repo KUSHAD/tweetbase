@@ -99,6 +99,13 @@
       "when": 1752590604904,
       "tag": "0013_wise_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1752736576032,
+      "tag": "0014_typical_dark_beast",
+      "breakpoints": true
     }
   ]
 }

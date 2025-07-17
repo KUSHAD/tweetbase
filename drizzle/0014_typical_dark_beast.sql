@@ -1,0 +1,1 @@
+ALTER TABLE "saas_users" ALTER COLUMN "avatar_url" SET NOT NULL;

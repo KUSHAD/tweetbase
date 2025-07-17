@@ -124,7 +124,8 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
         ne(saasUsers.id, authUser.userId),
       ),
     )
-    .orderBy((table) => [desc(table.rank)]);
+    .orderBy((table) => [desc(table.rank)])
+    .limit(10);
 
   return c.json({ message: 'Profiles fetched', data: { users } });
 });

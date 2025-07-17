@@ -77,9 +77,9 @@ export const saasUsers = pgTable(
       .primaryKey(),
     displayName: varchar('display_name', { length: 50 }).notNull(),
     userName: varchar('user_name', { length: 15 }).notNull().unique(),
-    avatarUrl: text('avatar_url').default(
-      'https://ozzfzo6f4u.ufs.sh/f/4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE',
-    ),
+    avatarUrl: text('avatar_url')
+      .notNull()
+      .default('https://ozzfzo6f4u.ufs.sh/f/4E4gJXn0fX5QxhdfWFjG1B5cSivUhkuwMOLA4yI3CmFbWTNE'),
     bio: varchar('bio', { length: 100 }).default(''),
     website: varchar('website', { length: 100 }).default(''),
     tweetCount: integer('tweet_count').notNull().default(0),
