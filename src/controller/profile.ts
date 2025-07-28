@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { saasUsers } from '../db/schema';
+import { standaloneUsers } from '../db/schema';
 import { utapi } from '../lib/uploadthing';
 import { errorFormat, getUploadthingFileKey } from '../lib/utils';
 import {
@@ -23,19 +23,19 @@ export const updateBasicInfo = zValidator('json', updateBasicInfoSchema, async (
   const { displayName, bio, website } = res.data;
 
   const [updatedUser] = await db
-    .update(saasUsers)
+    .update(standaloneUsers)
     .set({ displayName, bio, website })
-    .where(eq(saasUsers.id, authUser.userId))
+    .where(eq(standaloneUsers.id, authUser.userId))
     .returning({
-      id: saasUsers.id,
-      displayName: saasUsers.displayName,
-      userName: saasUsers.userName,
-      avatarUrl: saasUsers.avatarUrl,
-      bio: saasUsers.bio,
-      website: saasUsers.website,
-      followerCount: saasUsers.followerCount,
-      followingCount: saasUsers.followingCount,
-      tweetCount: saasUsers.tweetCount,
+      id: standaloneUsers.id,
+      displayName: standaloneUsers.displayName,
+      userName: standaloneUsers.userName,
+      avatarUrl: standaloneUsers.avatarUrl,
+      bio: standaloneUsers.bio,
+      website: standaloneUsers.website,
+      followerCount: standaloneUsers.followerCount,
+      followingCount: standaloneUsers.followingCount,
+      tweetCount: standaloneUsers.tweetCount,
     });
 
   return c.json({
@@ -55,8 +55,8 @@ export const updateUsername = zValidator('json', updateUsernameSchema, async (re
 
   const [usernameExists] = await db
     .select()
-    .from(saasUsers)
-    .where(and(eq(saasUsers.userName, userName), ne(saasUsers.id, authUser.userId)));
+    .from(standaloneUsers)
+    .where(and(eq(standaloneUsers.userName, userName), ne(standaloneUsers.id, authUser.userId)));
 
   if (usernameExists)
     throw new HTTPException(409, {
@@ -65,19 +65,19 @@ export const updateUsername = zValidator('json', updateUsernameSchema, async (re
     });
 
   const [updatedUser] = await db
-    .update(saasUsers)
+    .update(standaloneUsers)
     .set({ userName })
-    .where(eq(saasUsers.id, authUser.userId))
+    .where(eq(standaloneUsers.id, authUser.userId))
     .returning({
-      id: saasUsers.id,
-      displayName: saasUsers.displayName,
-      userName: saasUsers.userName,
-      avatarUrl: saasUsers.avatarUrl,
-      bio: saasUsers.bio,
-      website: saasUsers.website,
-      followerCount: saasUsers.followerCount,
-      followingCount: saasUsers.followingCount,
-      tweetCount: saasUsers.tweetCount,
+      id: standaloneUsers.id,
+      displayName: standaloneUsers.displayName,
+      userName: standaloneUsers.userName,
+      avatarUrl: standaloneUsers.avatarUrl,
+      bio: standaloneUsers.bio,
+      website: standaloneUsers.website,
+      followerCount: standaloneUsers.followerCount,
+      followingCount: standaloneUsers.followingCount,
+      tweetCount: standaloneUsers.tweetCount,
     });
 
   return c.json({
@@ -97,31 +97,31 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
 
   const users = await db
     .select({
-      id: saasUsers.id,
-      displayName: saasUsers.displayName,
-      userName: saasUsers.userName,
-      avatarUrl: saasUsers.avatarUrl,
-      bio: saasUsers.bio,
-      website: saasUsers.website,
-      followerCount: saasUsers.followerCount,
-      followingCount: saasUsers.followingCount,
+      id: standaloneUsers.id,
+      displayName: standaloneUsers.displayName,
+      userName: standaloneUsers.userName,
+      avatarUrl: standaloneUsers.avatarUrl,
+      bio: standaloneUsers.bio,
+      website: standaloneUsers.website,
+      followerCount: standaloneUsers.followerCount,
+      followingCount: standaloneUsers.followingCount,
       rank: sql<number>`ts_rank(
-        setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
-        setweight(to_tsvector('english', ${saasUsers.displayName}), 'B'),
+        setweight(to_tsvector('english', ${standaloneUsers.userName}), 'A') ||
+        setweight(to_tsvector('english', ${standaloneUsers.displayName}), 'B'),
         websearch_to_tsquery('english', ${searchString})
       )`,
-      tweetCount: saasUsers.tweetCount,
+      tweetCount: standaloneUsers.tweetCount,
     })
-    .from(saasUsers)
+    .from(standaloneUsers)
     .where(
       and(
         sql`
           (
-            setweight(to_tsvector('english', ${saasUsers.userName}), 'A') ||
-            setweight(to_tsvector('english', ${saasUsers.displayName}), 'B')
+            setweight(to_tsvector('english', ${standaloneUsers.userName}), 'A') ||
+            setweight(to_tsvector('english', ${standaloneUsers.displayName}), 'B')
           ) @@ websearch_to_tsquery('english', ${searchString})
         `,
-        ne(saasUsers.id, authUser.userId),
+        ne(standaloneUsers.id, authUser.userId),
       ),
     )
     .orderBy((table) => [desc(table.rank)])
@@ -140,9 +140,9 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
   const { avatar } = res.data;
 
   const [prevUser] = await db
-    .select({ avatarUrl: saasUsers.avatarUrl })
-    .from(saasUsers)
-    .where(eq(saasUsers.id, authUser.userId));
+    .select({ avatarUrl: standaloneUsers.avatarUrl })
+    .from(standaloneUsers)
+    .where(eq(standaloneUsers.id, authUser.userId));
 
   if (!prevUser)
     throw new HTTPException(404, {
@@ -153,19 +153,19 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
   const uploadedFile = await utapi.uploadFiles(avatar);
 
   const [user] = await db
-    .update(saasUsers)
+    .update(standaloneUsers)
     .set({ avatarUrl: uploadedFile.data?.ufsUrl })
-    .where(eq(saasUsers.id, authUser.userId))
+    .where(eq(standaloneUsers.id, authUser.userId))
     .returning({
-      id: saasUsers.id,
-      displayName: saasUsers.displayName,
-      userName: saasUsers.userName,
-      avatarUrl: saasUsers.avatarUrl,
-      bio: saasUsers.bio,
-      website: saasUsers.website,
-      followerCount: saasUsers.followerCount,
-      followingCount: saasUsers.followingCount,
-      tweetCount: saasUsers.tweetCount,
+      id: standaloneUsers.id,
+      displayName: standaloneUsers.displayName,
+      userName: standaloneUsers.userName,
+      avatarUrl: standaloneUsers.avatarUrl,
+      bio: standaloneUsers.bio,
+      website: standaloneUsers.website,
+      followerCount: standaloneUsers.followerCount,
+      followingCount: standaloneUsers.followingCount,
+      tweetCount: standaloneUsers.tweetCount,
     });
 
   const prevKey = prevUser.avatarUrl && getUploadthingFileKey(prevUser.avatarUrl);
@@ -183,18 +183,18 @@ export const getProfile = zValidator('param', getProfileSchema, async (res, c) =
 
   const [user] = await db
     .select({
-      id: saasUsers.id,
-      displayName: saasUsers.displayName,
-      userName: saasUsers.userName,
-      avatarUrl: saasUsers.avatarUrl,
-      bio: saasUsers.bio,
-      website: saasUsers.website,
-      followerCount: saasUsers.followerCount,
-      followingCount: saasUsers.followingCount,
-      tweetCount: saasUsers.tweetCount,
+      id: standaloneUsers.id,
+      displayName: standaloneUsers.displayName,
+      userName: standaloneUsers.userName,
+      avatarUrl: standaloneUsers.avatarUrl,
+      bio: standaloneUsers.bio,
+      website: standaloneUsers.website,
+      followerCount: standaloneUsers.followerCount,
+      followingCount: standaloneUsers.followingCount,
+      tweetCount: standaloneUsers.tweetCount,
     })
-    .from(saasUsers)
-    .where(eq(saasUsers.id, userId))
+    .from(standaloneUsers)
+    .where(eq(standaloneUsers.id, userId))
     .limit(1);
 
   if (!user)

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { getLikes, likeTweet, unlikeTweet } from '../controller/like';
-import { authMiddleware } from '../middleware/auth';
+import { getLikes, likeTweet, unlikeTweet } from '../../controller/like';
+import { authMiddleware } from '../../middleware/auth';
 
 const likeRouter = new Hono();
 

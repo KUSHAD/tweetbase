@@ -5,8 +5,8 @@ import {
   updateAvatar,
   updateBasicInfo,
   updateUsername,
-} from '../controller/profile';
-import { authMiddleware } from '../middleware/auth';
+} from '../../controller/profile';
+import { authMiddleware } from '../../middleware/auth';
 
 const profileRouter = new Hono();
 

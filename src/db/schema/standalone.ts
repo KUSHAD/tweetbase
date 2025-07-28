@@ -13,16 +13,16 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 
-const pgTable = pgTableCreator((name) => `saas_${name}`);
+const pgTable = pgTableCreator((name) => `standalone_${name}`);
 
-export const saasVerificationTokenType = pgEnum('saas_verification_token_type', [
+export const standaloneVerificationTokenType = pgEnum('standalone_verification_token_type', [
   'EMAIL_VERIFICATION',
   'PASSWORD_RESET',
 ]);
 
-export const tweetType = pgEnum('tweet_type', ['TWEET', 'RETWEET', 'QUOTE']);
+export const standaloneTweetType = pgEnum('standalone_tweet_type', ['TWEET', 'RETWEET', 'QUOTE']);
 
-export const saasAccounts = pgTable('accounts', {
+export const standaloneAccounts = pgTable('accounts', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
@@ -36,16 +36,16 @@ export const saasAccounts = pgTable('accounts', {
     .notNull(),
 });
 
-export const saasSessions = pgTable('sessions', {
+export const standaloneSessions = pgTable('sessions', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
   accountId: text('account_id')
     .notNull()
-    .references(() => saasAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    .references(() => standaloneAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   userId: text('user_id')
     .notNull()
-    .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   refreshToken: text('refresh_token').notNull().unique(),
   userAgent: text('user_agent'),
   ipAddress: text('ip_address'),
@@ -53,23 +53,23 @@ export const saasSessions = pgTable('sessions', {
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
 
-export const saasVerificationTokens = pgTable('verification_tokens', {
+export const standaloneVerificationTokens = pgTable('verification_tokens', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
   accountId: text('account_id')
     .notNull()
-    .references(() => saasAccounts.id, { onDelete: 'cascade' }),
+    .references(() => standaloneAccounts.id, { onDelete: 'cascade' }),
   userId: text('user_id')
     .notNull()
-    .references(() => saasUsers.id, { onDelete: 'cascade' }),
+    .references(() => standaloneUsers.id, { onDelete: 'cascade' }),
   token: text('token').notNull(),
-  tokenType: saasVerificationTokenType('token_type').notNull(),
+  tokenType: standaloneVerificationTokenType('token_type').notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
 
-export const saasUsers = pgTable(
+export const standaloneUsers = pgTable(
   'users',
   {
     id: text('id')
@@ -86,7 +86,7 @@ export const saasUsers = pgTable(
     followerCount: integer('follower_count').notNull().default(0),
     followingCount: integer('following_count').notNull().default(0),
     accountId: text('account_id')
-      .references(() => saasAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .references(() => standaloneAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' })
       .notNull(),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -95,21 +95,21 @@ export const saasUsers = pgTable(
       .notNull(),
   },
   (table) => [
-    index('saas_users_search_index').using(
+    index('standalone_users_search_index').using(
       'gin',
       sql`to_tsvector('english', ${table.userName} || ' ' || ${table.displayName})`,
     ),
   ],
 );
 
-export const saasFollows = pgTable(
+export const standaloneFollows = pgTable(
   'follows',
   {
     followerId: text('follower_id')
-      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
       .notNull(),
     followingId: text('following_id')
-      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
       .notNull(),
     createdAt: timestamp('created_at').defaultNow(),
   },
@@ -117,12 +117,12 @@ export const saasFollows = pgTable(
     primaryKey({
       columns: [table.followerId, table.followingId],
     }),
-    index('saas_follows_follower_idx').on(table.followerId),
-    index('saas_follows_following_idx').on(table.followingId),
+    index('standalone_follows_follower_idx').on(table.followerId),
+    index('standalone_follows_following_idx').on(table.followingId),
   ],
 );
 
-export const saasTweets = pgTable(
+export const standaloneTweets = pgTable(
   'tweets',
   {
     id: text('id')
@@ -130,11 +130,11 @@ export const saasTweets = pgTable(
       .$defaultFn(() => createId()),
     userId: text('user_id')
       .notNull()
-      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     content: varchar('content', { length: 280 }),
     mediaUrl: text('media_url'),
-    type: tweetType('type').default('TWEET').notNull(),
-    originalTweetId: text('original_tweet_id').references((): AnyPgColumn => saasTweets.id, {
+    type: standaloneTweetType('type').default('TWEET').notNull(),
+    originalTweetId: text('original_tweet_id').references((): AnyPgColumn => standaloneTweets.id, {
       onDelete: 'set null',
       onUpdate: 'cascade',
     }),
@@ -149,22 +149,22 @@ export const saasTweets = pgTable(
       .notNull(),
   },
   (table) => [
-    index('saas_tweets_user_idx').on(table.userId),
-    index('saas_tweets_type_idx').on(table.type),
-    index('saas_tweets_original_idx').on(table.originalTweetId),
+    index('standalone_tweets_user_idx').on(table.userId),
+    index('standalone_tweets_type_idx').on(table.type),
+    index('standalone_tweets_original_idx').on(table.originalTweetId),
   ],
 );
 
-export const saasTweetComments = pgTable(
+export const standaloneTweetComments = pgTable(
   'tweet_comments',
   {
     id: text('id').primaryKey().$defaultFn(createId),
     userId: text('user_id')
       .notNull()
-      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     tweetId: text('tweet_id')
       .notNull()
-      .references(() => saasTweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => standaloneTweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     content: varchar('content', { length: 150 }).notNull(),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -173,25 +173,25 @@ export const saasTweetComments = pgTable(
       .notNull(),
   },
   (table) => [
-    index('saas_tweet_comments_tweet_idx').on(table.tweetId),
-    index('saas_tweet_comments_user_idx').on(table.userId),
+    index('standalone_tweet_comments_tweet_idx').on(table.tweetId),
+    index('standalone_tweet_comments_user_idx').on(table.userId),
   ],
 );
 
-export const saasTweetLikes = pgTable(
+export const standaloneTweetLikes = pgTable(
   'tweet_likes',
   {
     userId: text('user_id')
       .notNull()
-      .references(() => saasUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     tweetId: text('tweet_id')
       .notNull()
-      .references(() => saasTweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => standaloneTweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.tweetId] }),
-    index('saas_tweet_likes_user_idx').on(table.userId),
-    index('saas_tweet_likes_tweet_idx').on(table.tweetId),
+    index('standalone_tweet_likes_user_idx').on(table.userId),
+    index('standalone_tweet_likes_tweet_idx').on(table.tweetId),
   ],
 );

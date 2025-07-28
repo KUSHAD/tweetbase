@@ -4,12 +4,12 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import {
-  saasAccounts,
-  saasFollows,
-  saasTweetComments,
-  saasTweetLikes,
-  saasTweets,
-  saasUsers,
+  standaloneAccounts,
+  standaloneFollows,
+  standaloneTweetComments,
+  standaloneTweetLikes,
+  standaloneTweets,
+  standaloneUsers,
 } from '../db/schema';
 
 const TOTAL_USERS = 20;
@@ -22,12 +22,12 @@ const COMMENT_PROBABILITY = 0.4;
 
 async function seed(): Promise<void> {
   console.log('🧼 Clearing old data...');
-  await db.delete(saasTweetLikes);
-  await db.delete(saasTweetComments);
-  await db.delete(saasTweets);
-  await db.delete(saasFollows);
-  await db.delete(saasUsers);
-  await db.delete(saasAccounts);
+  await db.delete(standaloneTweetLikes);
+  await db.delete(standaloneTweetComments);
+  await db.delete(standaloneTweets);
+  await db.delete(standaloneFollows);
+  await db.delete(standaloneUsers);
+  await db.delete(standaloneAccounts);
 
   console.log('🌱 Seeding database...');
   const passwordHash = await bcrypt.hash('12345678', 10);
@@ -58,7 +58,7 @@ async function seed(): Promise<void> {
     };
   });
 
-  await db.insert(saasAccounts).values(
+  await db.insert(standaloneAccounts).values(
     users.map(({ accountId }) => ({
       id: accountId,
       email: faker.internet.email(),
@@ -67,7 +67,7 @@ async function seed(): Promise<void> {
     })),
   );
 
-  await db.insert(saasUsers).values(users);
+  await db.insert(standaloneUsers).values(users);
   console.log('👥 Users and accounts created');
 
   const follows: { followerId: string; followingId: string }[] = [];
@@ -85,16 +85,16 @@ async function seed(): Promise<void> {
   }
 
   if (follows.length) {
-    await db.insert(saasFollows).values(follows);
+    await db.insert(standaloneFollows).values(follows);
     await Promise.all(
       users.map((user) =>
         db
-          .update(saasUsers)
+          .update(standaloneUsers)
           .set({
             followerCount: user.followerCount,
             followingCount: user.followingCount,
           })
-          .where(eq(saasUsers.id, user.id)),
+          .where(eq(standaloneUsers.id, user.id)),
       ),
     );
   }
@@ -124,7 +124,7 @@ async function seed(): Promise<void> {
     }
   }
 
-  await db.insert(saasTweets).values(tweets);
+  await db.insert(standaloneTweets).values(tweets);
   console.log(`📝 ${tweets.length} tweets created`);
 
   for (const tweet of tweets) {
@@ -180,22 +180,22 @@ async function seed(): Promise<void> {
     }
   }
 
-  if (retweets.length) await db.insert(saasTweets).values(retweets);
-  if (quoteTweets.length) await db.insert(saasTweets).values(quoteTweets);
-  if (likes.length) await db.insert(saasTweetLikes).values(likes);
-  if (comments.length) await db.insert(saasTweetComments).values(comments);
+  if (retweets.length) await db.insert(standaloneTweets).values(retweets);
+  if (quoteTweets.length) await db.insert(standaloneTweets).values(quoteTweets);
+  if (likes.length) await db.insert(standaloneTweetLikes).values(likes);
+  if (comments.length) await db.insert(standaloneTweetComments).values(comments);
 
   await Promise.all(
     tweets.map((tweet) =>
       db
-        .update(saasTweets)
+        .update(standaloneTweets)
         .set({
           likeCount: tweet.likeCount,
           retweetCount: tweet.retweetCount,
           quoteCount: tweet.quoteCount,
           commentCount: tweet.commentCount,
         })
-        .where(eq(saasTweets.id, tweet.id)),
+        .where(eq(standaloneTweets.id, tweet.id)),
     ),
   );
 
@@ -209,7 +209,7 @@ async function seed(): Promise<void> {
       const tweetCount = [...tweets, ...retweets, ...quoteTweets].filter(
         (t) => t.userId === user.id,
       ).length;
-      return db.update(saasUsers).set({ tweetCount }).where(eq(saasUsers.id, user.id));
+      return db.update(standaloneUsers).set({ tweetCount }).where(eq(standaloneUsers.id, user.id));
     }),
   );
 

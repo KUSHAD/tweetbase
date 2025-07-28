@@ -1,1 +1,1 @@
-export * from './saas';
+export * from './standalone';

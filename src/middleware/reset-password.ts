@@ -2,7 +2,7 @@ import { and, eq, gt } from 'drizzle-orm';
 import { MiddlewareHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { saasSessions, saasUsers } from '../db/schema';
+import { standaloneSessions, standaloneUsers } from '../db/schema';
 import { decryptForgotPasswordToken, errorFormat } from '../lib/utils';
 import { authorizationSchema } from '../validators/auth';
 
@@ -23,9 +23,11 @@ export const resetPasswordMiddleware: MiddlewareHandler = async (c, next) => {
   if (!payload) throw new HTTPException(401, { message: 'Unauthorized', cause: 'Token Expired' });
 
   const [user] = await db
-    .select({ userId: saasUsers.id, accountId: saasUsers.accountId })
-    .from(saasUsers)
-    .where(and(eq(saasUsers.id, payload.userId), eq(saasUsers.accountId, payload.accountId)));
+    .select({ userId: standaloneUsers.id, accountId: standaloneUsers.accountId })
+    .from(standaloneUsers)
+    .where(
+      and(eq(standaloneUsers.id, payload.userId), eq(standaloneUsers.accountId, payload.accountId)),
+    );
 
   if (!user)
     throw new HTTPException(401, {
@@ -35,12 +37,12 @@ export const resetPasswordMiddleware: MiddlewareHandler = async (c, next) => {
 
   const [session] = await db
     .select()
-    .from(saasSessions)
+    .from(standaloneSessions)
     .where(
       and(
-        eq(saasSessions.userId, payload.userId),
-        eq(saasSessions.accountId, payload.accountId),
-        gt(saasSessions.expiresAt, new Date()),
+        eq(standaloneSessions.userId, payload.userId),
+        eq(standaloneSessions.accountId, payload.accountId),
+        gt(standaloneSessions.expiresAt, new Date()),
       ),
     )
     .limit(1);

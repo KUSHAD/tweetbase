@@ -1,0 +1,1 @@
+ALTER TYPE "public"."tweet_type" RENAME TO "standalone_tweet_type";

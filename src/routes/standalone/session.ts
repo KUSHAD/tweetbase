@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { getActiveSessions, me, revokeSession, rotateRefreshToken } from '../controller/session';
-import { authMiddleware } from '../middleware/auth';
+import { getActiveSessions, me, revokeSession, rotateRefreshToken } from '../../controller/session';
+import { authMiddleware } from '../../middleware/auth';
 
 const sessionRouter = new Hono();
 
