@@ -14,6 +14,6 @@ profileRouter.patch('/basic-info', authMiddleware, updateBasicInfo);
 profileRouter.patch('/username', authMiddleware, updateUsername);
 profileRouter.get('/search', authMiddleware, searchProfiles);
 profileRouter.patch('/avatar', authMiddleware, updateAvatar);
-profileRouter.get('/:userId', getProfile);
+profileRouter.get('/', getProfile);
 
 export default profileRouter;

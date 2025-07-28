@@ -12,14 +12,14 @@ import { authMiddleware } from '../../middleware/auth';
 
 const tweetRouter = new Hono();
 
-tweetRouter.post('/', authMiddleware, newTweet);
 tweetRouter
-  .all('/:tweetId')
+  .all('/')
+  .post(authMiddleware, newTweet)
   .get(getTweet)
   .patch(authMiddleware, editTweet)
   .delete(authMiddleware, deleteTweet);
-tweetRouter.post('/retweet/:tweetId', authMiddleware, retweet);
-tweetRouter.post('/quote/:tweetId', authMiddleware, quoteTweet);
-tweetRouter.get('/user/:userId', getUserTweets);
+tweetRouter.post('/retweet', authMiddleware, retweet);
+tweetRouter.post('/quote', authMiddleware, quoteTweet);
+tweetRouter.get('/user', getUserTweets);
 
 export default tweetRouter;

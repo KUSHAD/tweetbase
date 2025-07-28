@@ -4,6 +4,6 @@ import { authMiddleware } from '../../middleware/auth';
 
 const likeRouter = new Hono();
 
-likeRouter.all('/:tweetId', authMiddleware).post(likeTweet).get(getLikes).delete(unlikeTweet);
+likeRouter.all('/', authMiddleware).post(likeTweet).get(getLikes).delete(unlikeTweet);
 
 export default likeRouter;

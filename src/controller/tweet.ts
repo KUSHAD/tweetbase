@@ -52,7 +52,7 @@ export const newTweet = zValidator('form', newTweetSchema, async (res, c) => {
   });
 });
 
-export const getTweet = zValidator('param', getTweetSchema, async (res, c) => {
+export const getTweet = zValidator('query', getTweetSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { tweetId } = res.data;
@@ -104,7 +104,7 @@ export const getTweet = zValidator('param', getTweetSchema, async (res, c) => {
   });
 });
 
-export const deleteTweet = zValidator('param', getTweetSchema, async (res, c) => {
+export const deleteTweet = zValidator('query', getTweetSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { tweetId } = res.data;
@@ -260,7 +260,7 @@ export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
   });
 });
 
-export const retweet = zValidator('param', getTweetSchema, async (res, c) => {
+export const retweet = zValidator('query', getTweetSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { tweetId } = res.data;
@@ -342,16 +342,12 @@ export const retweet = zValidator('param', getTweetSchema, async (res, c) => {
 
 export const quoteTweet = zValidator(
   'json',
-  newTweetSchema.omit({ media: true }),
+  newTweetSchema.omit({ media: true }).and(getTweetSchema),
   async (res, c) => {
     if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-    const tweetId = c.req.param('tweetId');
-    const safeId = getTweetSchema.safeParse({ tweetId });
-    if (!safeId.success) throw new HTTPException(400, errorFormat(safeId.error));
-
     const authUser = c.get('authUser');
-    const { content } = res.data;
+    const { content, tweetId } = res.data;
 
     if (!content?.trim())
       throw new HTTPException(400, {
@@ -374,7 +370,7 @@ export const quoteTweet = zValidator(
       })
       .from(standaloneTweets)
       .innerJoin(standaloneUsers, eq(standaloneUsers.id, standaloneTweets.userId))
-      .where(eq(standaloneTweets.id, safeId.data.tweetId))
+      .where(eq(standaloneTweets.id, tweetId))
       .limit(1);
 
     if (!ogTweet)
@@ -420,63 +416,60 @@ export const quoteTweet = zValidator(
   },
 );
 
-export const getUserTweets = zValidator('param', getProfileSchema, async (res, c) => {
-  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
+export const getUserTweets = zValidator(
+  'query',
+  getProfileSchema.and(paginationSchema),
+  async (res, c) => {
+    if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-  const { userId } = res.data;
+    const { userId, limit, offset } = res.data;
 
-  const parsedPagination = paginationSchema.safeParse({
-    limit: c.req.query('limit'),
-    offset: c.req.query('offset'),
-  });
+    const tweets = await db
+      .select({
+        id: standaloneTweets.id,
+        content: standaloneTweets.content,
+        mediaUrl: standaloneTweets.mediaUrl,
+        type: standaloneTweets.type,
+        likeCount: standaloneTweets.likeCount,
+        commentCount: standaloneTweets.commentCount,
+        quoteCount: standaloneTweets.quoteCount,
+        retweetCount: standaloneTweets.retweetCount,
+        createdAt: standaloneTweets.createdAt,
+        updatedAt: standaloneTweets.updatedAt,
+        user: {
+          id: standaloneUsers.id,
+          displayName: standaloneUsers.displayName,
+          userName: standaloneUsers.userName,
+          avatarUrl: standaloneUsers.avatarUrl,
+        },
+        originalTweet: {
+          id: originalTweet.id,
+          content: originalTweet.content,
+          mediaUrl: originalTweet.mediaUrl,
+          createdAt: originalTweet.createdAt,
+        },
+        originalTweetUser: {
+          id: originalTweetUser.id,
+          displayName: originalTweetUser.displayName,
+          userName: originalTweetUser.userName,
+          avatarUrl: originalTweetUser.avatarUrl,
+        },
+      })
+      .from(standaloneTweets)
+      .innerJoin(standaloneUsers, eq(standaloneTweets.userId, standaloneUsers.id))
+      .leftJoin(originalTweet, eq(standaloneTweets.originalTweetId, originalTweet.id))
+      .leftJoin(originalTweetUser, eq(originalTweet.userId, originalTweetUser.id))
+      .where(eq(standaloneTweets.userId, userId))
+      .orderBy((t) => desc(t.createdAt))
+      .offset(offset)
+      .limit(limit + 1);
 
-  if (!parsedPagination.success) throw new HTTPException(400, errorFormat(parsedPagination.error));
+    const hasMore = tweets.length > limit;
+    const data = hasMore ? tweets.slice(0, -1) : tweets;
 
-  const tweets = await db
-    .select({
-      id: standaloneTweets.id,
-      content: standaloneTweets.content,
-      mediaUrl: standaloneTweets.mediaUrl,
-      type: standaloneTweets.type,
-      likeCount: standaloneTweets.likeCount,
-      commentCount: standaloneTweets.commentCount,
-      quoteCount: standaloneTweets.quoteCount,
-      retweetCount: standaloneTweets.retweetCount,
-      createdAt: standaloneTweets.createdAt,
-      updatedAt: standaloneTweets.updatedAt,
-      user: {
-        id: standaloneUsers.id,
-        displayName: standaloneUsers.displayName,
-        userName: standaloneUsers.userName,
-        avatarUrl: standaloneUsers.avatarUrl,
-      },
-      originalTweet: {
-        id: originalTweet.id,
-        content: originalTweet.content,
-        mediaUrl: originalTweet.mediaUrl,
-        createdAt: originalTweet.createdAt,
-      },
-      originalTweetUser: {
-        id: originalTweetUser.id,
-        displayName: originalTweetUser.displayName,
-        userName: originalTweetUser.userName,
-        avatarUrl: originalTweetUser.avatarUrl,
-      },
-    })
-    .from(standaloneTweets)
-    .innerJoin(standaloneUsers, eq(standaloneTweets.userId, standaloneUsers.id))
-    .leftJoin(originalTweet, eq(standaloneTweets.originalTweetId, originalTweet.id))
-    .leftJoin(originalTweetUser, eq(originalTweet.userId, originalTweetUser.id))
-    .where(eq(standaloneTweets.userId, userId))
-    .orderBy((t) => desc(t.createdAt))
-    .offset(parsedPagination.data.offset)
-    .limit(parsedPagination.data.limit + 1);
-
-  const hasMore = tweets.length > parsedPagination.data.limit;
-  const data = hasMore ? tweets.slice(0, -1) : tweets;
-
-  return c.json({
-    message: 'Tweets fetched successfully',
-    data: { tweets: data, hasMore, nextOffset: parsedPagination.data.offset + data.length },
-  });
-});
+    return c.json({
+      message: 'Tweets fetched successfully',
+      data: { tweets: data, hasMore, nextOffset: offset + data.length },
+    });
+  },
+);

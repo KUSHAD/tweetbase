@@ -9,8 +9,11 @@ import { authMiddleware } from '../../middleware/auth';
 
 const commentRouter = new Hono();
 
-commentRouter.post('/', authMiddleware, createComment);
-commentRouter.all('/:commentId', authMiddleware).patch(updateComment).delete(deleteComment);
-commentRouter.get('/tweet/:tweetId', getCommentsByTweetId);
+commentRouter
+  .all('/', authMiddleware)
+  .post(createComment)
+  .patch(updateComment)
+  .delete(deleteComment);
+commentRouter.get('/tweet', getCommentsByTweetId);
 
 export default commentRouter;

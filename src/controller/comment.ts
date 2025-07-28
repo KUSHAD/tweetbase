@@ -36,61 +36,61 @@ export const createComment = zValidator('json', createCommentSchema, async (res,
   });
 });
 
-export const updateComment = zValidator('param', commentIdSchema, async (res, c) => {
-  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
+export const updateComment = zValidator(
+  'query',
+  commentIdSchema.and(createCommentSchema),
+  async (res, c) => {
+    if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-  const { commentId } = res.data;
+    const { commentId, content, tweetId } = res.data;
 
-  const commentContent = createCommentSchema.safeParse(c.req.json());
+    const authUser = c.get('authUser');
 
-  if (!commentContent.success) throw new HTTPException(400, errorFormat(commentContent.error));
+    const [selectedComment] = await db
+      .select({ id: standaloneTweetComments.id })
+      .from(standaloneTweetComments)
+      .where(
+        and(
+          eq(standaloneTweetComments.id, commentId),
+          eq(standaloneTweetComments.userId, authUser.userId),
+          eq(standaloneTweetComments.tweetId, tweetId),
+        ),
+      );
 
-  const authUser = c.get('authUser');
+    if (!selectedComment)
+      throw new HTTPException(404, {
+        message: 'Forbidden',
+        cause: 'Comment not found or you do not have permission to update it',
+      });
 
-  const [selectedComment] = await db
-    .select({ id: standaloneTweetComments.id })
-    .from(standaloneTweetComments)
-    .where(
-      and(
-        eq(standaloneTweetComments.id, commentId),
-        eq(standaloneTweetComments.userId, authUser.userId),
-        eq(standaloneTweetComments.tweetId, commentContent.data.tweetId),
-      ),
-    );
+    const [updatedComment] = await db
+      .update(standaloneTweetComments)
+      .set({
+        content: content,
+      })
+      .where(
+        and(
+          eq(standaloneTweetComments.id, commentId),
+          eq(standaloneTweetComments.userId, authUser.userId),
+          eq(standaloneTweetComments.tweetId, tweetId),
+        ),
+      )
+      .returning({
+        content: standaloneTweetComments.content,
+        tweetId: standaloneTweetComments.tweetId,
+        userId: standaloneTweetComments.userId,
+      });
 
-  if (!selectedComment)
-    throw new HTTPException(404, {
-      message: 'Forbidden',
-      cause: 'Comment not found or you do not have permission to update it',
+    return c.json({
+      message: 'Comment updated successfully',
+      data: {
+        comment: updatedComment,
+      },
     });
+  },
+);
 
-  const [updatedComment] = await db
-    .update(standaloneTweetComments)
-    .set({
-      content: commentContent.data.content,
-    })
-    .where(
-      and(
-        eq(standaloneTweetComments.id, commentId),
-        eq(standaloneTweetComments.userId, authUser.userId),
-        eq(standaloneTweetComments.tweetId, commentContent.data.tweetId),
-      ),
-    )
-    .returning({
-      content: standaloneTweetComments.content,
-      tweetId: standaloneTweetComments.tweetId,
-      userId: standaloneTweetComments.userId,
-    });
-
-  return c.json({
-    message: 'Comment updated successfully',
-    data: {
-      comment: updatedComment,
-    },
-  });
-});
-
-export const deleteComment = zValidator('param', commentIdSchema, async (res, c) => {
+export const deleteComment = zValidator('query', commentIdSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { commentId } = res.data;
@@ -131,45 +131,43 @@ export const deleteComment = zValidator('param', commentIdSchema, async (res, c)
   });
 });
 
-export const getCommentsByTweetId = zValidator('param', getTweetSchema, async (res, c) => {
-  if (!res.success) throw new HTTPException(400, errorFormat(res.error));
+export const getCommentsByTweetId = zValidator(
+  'query',
+  getTweetSchema.and(paginationSchema),
+  async (res, c) => {
+    if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
-  const { tweetId } = res.data;
-  const parsedPagination = paginationSchema.safeParse({
-    limit: c.req.query('limit'),
-    offset: c.req.query('offset'),
-  });
+    const { tweetId, limit, offset } = res.data;
 
-  if (!parsedPagination.success) throw new HTTPException(400, errorFormat(parsedPagination.error));
+    const comments = await db
+      .select({
+        id: standaloneTweetComments.id,
+        content: standaloneTweetComments.content,
+        user: {
+          id: standaloneUsers.id,
+          userName: standaloneUsers.userName,
+          displayName: standaloneUsers.displayName,
+          avatarUrl: standaloneUsers.avatarUrl,
+        },
+        createdAt: standaloneTweetComments.createdAt,
+      })
+      .from(standaloneTweetComments)
+      .where(eq(standaloneTweetComments.tweetId, tweetId))
+      .innerJoin(standaloneUsers, eq(standaloneUsers.id, standaloneTweetComments.userId))
+      .orderBy((t) => desc(t.createdAt))
+      .offset(offset)
+      .limit(limit + 1);
 
-  const comments = await db
-    .select({
-      id: standaloneTweetComments.id,
-      content: standaloneTweetComments.content,
-      user: {
-        id: standaloneUsers.id,
-        userName: standaloneUsers.userName,
-        displayName: standaloneUsers.displayName,
-        avatarUrl: standaloneUsers.avatarUrl,
+    const hasMore = comments.length > limit;
+    const data = hasMore ? comments.slice(0, -1) : comments;
+
+    return c.json({
+      message: 'Comments fetched successfully',
+      data: {
+        comments: data,
+        hasMore,
+        nextOffset: offset + data.length,
       },
-      createdAt: standaloneTweetComments.createdAt,
-    })
-    .from(standaloneTweetComments)
-    .where(eq(standaloneTweetComments.tweetId, tweetId))
-    .innerJoin(standaloneUsers, eq(standaloneUsers.id, standaloneTweetComments.userId))
-    .orderBy((t) => desc(t.createdAt))
-    .offset(parsedPagination.data.offset)
-    .limit(parsedPagination.data.limit + 1);
-
-  const hasMore = comments.length > parsedPagination.data.limit;
-  const data = hasMore ? comments.slice(0, -1) : comments;
-
-  return c.json({
-    message: 'Comments fetched successfully',
-    data: {
-      comments: data,
-      hasMore,
-      nextOffset: parsedPagination.data.offset + data.length,
-    },
-  });
-});
+    });
+  },
+);

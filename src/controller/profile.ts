@@ -176,7 +176,7 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
   return c.json({ message: 'Avatar uploaded successfully', data: { user } });
 });
 
-export const getProfile = zValidator('param', getProfileSchema, async (res, c) => {
+export const getProfile = zValidator('query', getProfileSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { userId } = res.data;
