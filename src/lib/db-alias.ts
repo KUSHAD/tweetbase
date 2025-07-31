@@ -1,5 +1,5 @@
 import { alias } from 'drizzle-orm/pg-core';
-import { saasTweets, saasUsers } from '../db/schema';
+import { standaloneTweets, standaloneUsers } from '../db/schema';
 
-export const originalTweet = alias(saasTweets, 'original_tweet');
-export const originalTweetUser = alias(saasUsers, 'original_tweet_user');
+export const originalTweet = alias(standaloneTweets, 'original_tweet');
+export const originalTweetUser = alias(standaloneUsers, 'original_tweet_user');

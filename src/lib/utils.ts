@@ -1,14 +1,14 @@
 import { generateTOTP, verifyTOTPWithGracePeriod } from '@oslojs/otp';
 import { SignJWT, jwtVerify } from 'jose';
 import { EmailParams, Recipient, Sender } from 'mailersend';
-import z from 'zod';
+import z from 'zod/v4';
 import { mailerSend } from './email';
 
 export function errorFormat(error: unknown) {
   if (error instanceof z.ZodError) {
     return {
       message: 'Validation failed',
-      error: error.errors.map((e) => ({
+      error: error.issues.map((e) => ({
         field: e.path.join('.'),
         message: e.message,
       })),
