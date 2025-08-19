@@ -5,8 +5,8 @@ import {
   getFollowing,
   getSuggestedFollows,
   unfollowUser,
-} from '../../controller/network';
-import { authMiddleware } from '../../middleware/auth';
+} from '../controller/network';
+import { authMiddleware } from '../middleware/auth';
 
 const networkRouter = new Hono();
 

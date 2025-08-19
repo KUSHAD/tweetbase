@@ -4,12 +4,7 @@ import { addDays, addMinutes } from 'date-fns';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '../db';
-import {
-  standaloneAccounts,
-  standaloneSessions,
-  standaloneUsers,
-  standaloneVerificationTokens,
-} from '../db/schema';
+import { accounts, sessions, users, verificationTokens } from '../db/schema';
 
 import {
   errorFormat,
@@ -38,40 +33,34 @@ export const signup = zValidator('json', signupSchema, async (res, c) => {
 
   const { displayName, userName, email, password } = res.data;
 
-  const [uExists] = await db
-    .select()
-    .from(standaloneUsers)
-    .where(eq(standaloneUsers.userName, userName));
+  const [uExists] = await db.select().from(users).where(eq(users.userName, userName));
   if (uExists)
     throw new HTTPException(400, { message: 'Invalid Username', cause: 'Username exists' });
 
-  const [eExists] = await db
-    .select()
-    .from(standaloneAccounts)
-    .where(eq(standaloneAccounts.email, email));
+  const [eExists] = await db.select().from(accounts).where(eq(accounts.email, email));
   if (eExists) throw new HTTPException(400, { message: 'Invalid Email', cause: 'Email exists' });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const [acc] = await db.insert(standaloneAccounts).values({ email, passwordHash }).returning();
+  const [acc] = await db.insert(accounts).values({ email, passwordHash }).returning();
   const [user] = await db
-    .insert(standaloneUsers)
+    .insert(users)
     .values({ accountId: acc.id, displayName, userName })
     .returning({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      website: standaloneUsers.website,
-      followerCount: standaloneUsers.followerCount,
-      followingCount: standaloneUsers.followingCount,
-      tweetCount: standaloneUsers.tweetCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      website: users.website,
+      followerCount: users.followerCount,
+      followingCount: users.followingCount,
+      tweetCount: users.tweetCount,
     });
 
   const accessToken = await generateAccessToken({ userId: user.id, accountId: acc.id });
   const refreshToken = await generateRefreshToken({ userId: user.id, accountId: acc.id });
 
-  await db.insert(standaloneSessions).values({
+  await db.insert(sessions).values({
     refreshToken,
     userId: user.id,
     accountId: acc.id,
@@ -81,7 +70,7 @@ export const signup = zValidator('json', signupSchema, async (res, c) => {
   });
 
   const otp = await generateEmailVerificationToken();
-  await db.insert(standaloneVerificationTokens).values({
+  await db.insert(verificationTokens).values({
     token: otp,
     userId: user.id,
     accountId: acc.id,
@@ -105,38 +94,29 @@ export const login = zValidator('json', loginSchema, async (res, c) => {
   let user: any;
   let acc: any;
 
-  const [uByName] = await db
-    .select()
-    .from(standaloneUsers)
-    .where(eq(standaloneUsers.userName, identifier));
+  const [uByName] = await db.select().from(users).where(eq(users.userName, identifier));
   if (uByName) {
     user = uByName;
-    [acc] = await db
-      .select()
-      .from(standaloneAccounts)
-      .where(eq(standaloneAccounts.id, user.accountId));
+    [acc] = await db.select().from(accounts).where(eq(accounts.id, user.accountId));
   } else {
-    const [aByEmail] = await db
-      .select()
-      .from(standaloneAccounts)
-      .where(eq(standaloneAccounts.email, identifier));
+    const [aByEmail] = await db.select().from(accounts).where(eq(accounts.email, identifier));
     if (!aByEmail)
       throw new HTTPException(401, { message: 'Invalid Credentials', cause: 'Account not found' });
     acc = aByEmail;
     [user] = await db
       .select({
-        id: standaloneUsers.id,
-        displayName: standaloneUsers.displayName,
-        userName: standaloneUsers.userName,
-        avatarUrl: standaloneUsers.avatarUrl,
-        bio: standaloneUsers.bio,
-        website: standaloneUsers.website,
-        followerCount: standaloneUsers.followerCount,
-        followingCount: standaloneUsers.followingCount,
-        tweetCount: standaloneUsers.tweetCount,
+        id: users.id,
+        displayName: users.displayName,
+        userName: users.userName,
+        avatarUrl: users.avatarUrl,
+        bio: users.bio,
+        website: users.website,
+        followerCount: users.followerCount,
+        followingCount: users.followingCount,
+        tweetCount: users.tweetCount,
       })
-      .from(standaloneUsers)
-      .where(eq(standaloneUsers.accountId, acc.id));
+      .from(users)
+      .where(eq(users.accountId, acc.id));
   }
 
   const match = await bcrypt.compare(password, acc.passwordHash);
@@ -146,7 +126,7 @@ export const login = zValidator('json', loginSchema, async (res, c) => {
   const accessToken = await generateAccessToken({ userId: user.id, accountId: acc.id });
   const refreshToken = await generateRefreshToken({ userId: user.id, accountId: acc.id });
 
-  await db.insert(standaloneSessions).values({
+  await db.insert(sessions).values({
     refreshToken,
     userId: user.id,
     accountId: acc.id,
@@ -165,7 +145,7 @@ export const logout = zValidator('json', logoutSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
 
   const { refreshToken } = res.data;
-  await db.delete(standaloneSessions).where(eq(standaloneSessions.refreshToken, refreshToken));
+  await db.delete(sessions).where(eq(sessions.refreshToken, refreshToken));
   return c.json({ message: 'Logout done' });
 });
 
@@ -179,13 +159,13 @@ export const verifyEmail = zValidator('json', emailVerificationSchema, async (re
 
   const [vt] = await db
     .select()
-    .from(standaloneVerificationTokens)
+    .from(verificationTokens)
     .where(
       and(
-        eq(standaloneVerificationTokens.token, token),
-        eq(standaloneVerificationTokens.userId, authUser.userId),
-        eq(standaloneVerificationTokens.accountId, authUser.accountId),
-        eq(standaloneVerificationTokens.tokenType, 'EMAIL_VERIFICATION'),
+        eq(verificationTokens.token, token),
+        eq(verificationTokens.userId, authUser.userId),
+        eq(verificationTokens.accountId, authUser.accountId),
+        eq(verificationTokens.tokenType, 'EMAIL_VERIFICATION'),
       ),
     );
 
@@ -195,11 +175,8 @@ export const verifyEmail = zValidator('json', emailVerificationSchema, async (re
   if (!isValid)
     throw new HTTPException(400, { message: 'Invalid token', cause: 'Token verification failed' });
 
-  await db
-    .update(standaloneAccounts)
-    .set({ emailVerified: true })
-    .where(eq(standaloneAccounts.id, authUser.accountId));
-  await db.delete(standaloneVerificationTokens).where(eq(standaloneVerificationTokens.id, vt.id));
+  await db.update(accounts).set({ emailVerified: true }).where(eq(accounts.id, authUser.accountId));
+  await db.delete(verificationTokens).where(eq(verificationTokens.id, vt.id));
 
   return c.json({ message: 'Email verified' });
 });
@@ -210,29 +187,20 @@ export const sendPasswordResetEmail = zValidator('json', forgotPasswordSchema, a
   const { identifier } = res.data;
   let user: any, acc: any;
 
-  const [u] = await db
-    .select()
-    .from(standaloneUsers)
-    .where(eq(standaloneUsers.userName, identifier));
+  const [u] = await db.select().from(users).where(eq(users.userName, identifier));
   if (u) {
     user = u;
-    [acc] = await db
-      .select()
-      .from(standaloneAccounts)
-      .where(eq(standaloneAccounts.id, user.accountId));
+    [acc] = await db.select().from(accounts).where(eq(accounts.id, user.accountId));
   } else {
-    const [a] = await db
-      .select()
-      .from(standaloneAccounts)
-      .where(eq(standaloneAccounts.email, identifier));
+    const [a] = await db.select().from(accounts).where(eq(accounts.email, identifier));
     if (!a)
       throw new HTTPException(401, { message: 'Invalid credentials', cause: 'Email not found' });
     acc = a;
-    [user] = await db.select().from(standaloneUsers).where(eq(standaloneUsers.accountId, acc.id));
+    [user] = await db.select().from(users).where(eq(users.accountId, acc.id));
   }
 
   const otp = await generatePasswordResetToken();
-  await db.insert(standaloneVerificationTokens).values({
+  await db.insert(verificationTokens).values({
     token: otp,
     userId: user.id,
     accountId: acc.id,
@@ -256,13 +224,13 @@ export const resetPassword = zValidator('json', resetPasswordSchema, async (res,
 
   const [vt] = await db
     .select()
-    .from(standaloneVerificationTokens)
+    .from(verificationTokens)
     .where(
       and(
-        eq(standaloneVerificationTokens.token, token),
-        eq(standaloneVerificationTokens.userId, authUser.userId),
-        eq(standaloneVerificationTokens.accountId, authUser.accountId),
-        eq(standaloneVerificationTokens.tokenType, 'PASSWORD_RESET'),
+        eq(verificationTokens.token, token),
+        eq(verificationTokens.userId, authUser.userId),
+        eq(verificationTokens.accountId, authUser.accountId),
+        eq(verificationTokens.tokenType, 'PASSWORD_RESET'),
       ),
     );
 
@@ -270,11 +238,8 @@ export const resetPassword = zValidator('json', resetPasswordSchema, async (res,
     throw new HTTPException(400, { message: 'Invalid token', cause: 'Token not found or expired' });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await db
-    .update(standaloneAccounts)
-    .set({ passwordHash })
-    .where(eq(standaloneAccounts.id, authUser.accountId));
-  await db.delete(standaloneVerificationTokens).where(eq(standaloneVerificationTokens.id, vt.id));
+  await db.update(accounts).set({ passwordHash }).where(eq(accounts.id, authUser.accountId));
+  await db.delete(verificationTokens).where(eq(verificationTokens.id, vt.id));
 
   return c.json({ message: 'Password updated' });
 });

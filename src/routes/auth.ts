@@ -6,9 +6,9 @@ import {
   sendPasswordResetEmail,
   signup,
   verifyEmail,
-} from '../../controller/auth';
-import { authMiddleware } from '../../middleware/auth';
-import { resetPasswordMiddleware } from '../../middleware/reset-password';
+} from '../controller/auth';
+import { authMiddleware } from '../middleware/auth';
+import { resetPasswordMiddleware } from '../middleware/reset-password';
 
 const authRouter = new Hono();
 

@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { standaloneFollows, standaloneTweetLikes, standaloneUsers } from '../db/schema';
+import { follows, tweetLikes, users } from '../db/schema';
 import { errorFormat } from '../lib/utils';
 import { getTweetSchema } from '../validators/tweet';
 import { paginationSchema } from '../validators/utils';
@@ -17,23 +17,18 @@ export const likeTweet = zValidator('query', getTweetSchema, async (res, c) => {
   const { tweetId } = res.data;
 
   const [likeExists] = await db
-    .select({ userId: standaloneTweetLikes.userId, tweetId: standaloneTweetLikes.tweetId })
-    .from(standaloneTweetLikes)
-    .where(
-      and(
-        eq(standaloneTweetLikes.userId, authUser.userId),
-        eq(standaloneTweetLikes.tweetId, tweetId),
-      ),
-    )
+    .select({ userId: tweetLikes.userId, tweetId: tweetLikes.tweetId })
+    .from(tweetLikes)
+    .where(and(eq(tweetLikes.userId, authUser.userId), eq(tweetLikes.tweetId, tweetId)))
     .limit(1);
 
   if (likeExists)
     throw new HTTPException(400, { message: 'Invalid Request', cause: 'Tweet already liked' });
 
   const [data] = await db
-    .insert(standaloneTweetLikes)
+    .insert(tweetLikes)
     .values({ tweetId, userId: authUser.userId })
-    .returning({ userId: standaloneTweetLikes.userId, tweetId: standaloneTweetLikes.tweetId });
+    .returning({ userId: tweetLikes.userId, tweetId: tweetLikes.tweetId });
 
   return c.json({ message: 'Tweet liked succesfully', data });
 });
@@ -48,28 +43,18 @@ export const unlikeTweet = zValidator('query', getTweetSchema, async (res, c) =>
   const { tweetId } = res.data;
 
   const [likeExists] = await db
-    .select({ userId: standaloneTweetLikes.userId, tweetId: standaloneTweetLikes.tweetId })
-    .from(standaloneTweetLikes)
-    .where(
-      and(
-        eq(standaloneTweetLikes.userId, authUser.userId),
-        eq(standaloneTweetLikes.tweetId, tweetId),
-      ),
-    )
+    .select({ userId: tweetLikes.userId, tweetId: tweetLikes.tweetId })
+    .from(tweetLikes)
+    .where(and(eq(tweetLikes.userId, authUser.userId), eq(tweetLikes.tweetId, tweetId)))
     .limit(1);
 
   if (likeExists)
     throw new HTTPException(400, { message: 'Invalid Request', cause: 'Tweet already unliked' });
 
   const [data] = await db
-    .delete(standaloneTweetLikes)
-    .where(
-      and(
-        eq(standaloneTweetLikes.userId, authUser.userId),
-        eq(standaloneTweetLikes.tweetId, tweetId),
-      ),
-    )
-    .returning({ userId: standaloneTweetLikes.userId, tweetId: standaloneTweetLikes.tweetId });
+    .delete(tweetLikes)
+    .where(and(eq(tweetLikes.userId, authUser.userId), eq(tweetLikes.tweetId, tweetId)))
+    .returning({ userId: tweetLikes.userId, tweetId: tweetLikes.tweetId });
 
   return c.json({ message: 'Tweet unliked succesfully', data });
 });
@@ -88,29 +73,29 @@ export const getLikes = zValidator(
 
     const likedUsers = await db
       .select({
-        id: standaloneUsers.id,
-        userName: standaloneUsers.userName,
-        displayName: standaloneUsers.displayName,
-        avatarUrl: standaloneUsers.avatarUrl,
+        id: users.id,
+        userName: users.userName,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
         isFollowing: sql<boolean>`EXISTS (
-          SELECT 1 FROM ${standaloneFollows} AS f
+          SELECT 1 FROM ${follows} AS f
           WHERE f.follower_id = ${authUser.userId}
-            AND f.following_id = ${standaloneUsers.id}
+            AND f.following_id = ${users.id}
         )`,
         isMutual: sql<boolean>`EXISTS (
-          SELECT 1 FROM ${standaloneFollows} AS f1
+          SELECT 1 FROM ${follows} AS f1
           WHERE f1.follower_id = ${authUser.userId}
-            AND f1.following_id = ${standaloneUsers.id}
+            AND f1.following_id = ${users.id}
         ) AND EXISTS (
-          SELECT 1 FROM ${standaloneFollows} AS f2
-          WHERE f2.follower_id = ${standaloneUsers.id}
+          SELECT 1 FROM ${follows} AS f2
+          WHERE f2.follower_id = ${users.id}
             AND f2.following_id = ${authUser.userId}
         )`,
-        createdAt: standaloneTweetLikes.createdAt,
+        createdAt: tweetLikes.createdAt,
       })
-      .from(standaloneTweetLikes)
-      .innerJoin(standaloneUsers, eq(standaloneTweetLikes.userId, standaloneUsers.id))
-      .where(eq(standaloneTweetLikes.tweetId, tweetId))
+      .from(tweetLikes)
+      .innerJoin(users, eq(tweetLikes.userId, users.id))
+      .where(eq(tweetLikes.tweetId, tweetId))
       .orderBy((t) => desc(t.createdAt))
       .offset(offset)
       .limit(limit + 1);

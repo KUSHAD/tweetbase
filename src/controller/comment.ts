@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { standaloneTweetComments, standaloneUsers } from '../db/schema';
+import { tweetComments, users } from '../db/schema';
 import { errorFormat } from '../lib/utils';
 import { commentIdSchema, createCommentSchema } from '../validators/comment';
 import { getTweetSchema } from '../validators/tweet';
@@ -16,16 +16,16 @@ export const createComment = zValidator('json', createCommentSchema, async (res,
   const authUser = c.get('authUser');
 
   const [newComment] = await db
-    .insert(standaloneTweetComments)
+    .insert(tweetComments)
     .values({
       content,
       tweetId,
       userId: authUser.userId,
     })
     .returning({
-      content: standaloneTweetComments.content,
-      tweetId: standaloneTweetComments.tweetId,
-      userId: standaloneTweetComments.userId,
+      content: tweetComments.content,
+      tweetId: tweetComments.tweetId,
+      userId: tweetComments.userId,
     });
 
   return c.json({
@@ -47,13 +47,13 @@ export const updateComment = zValidator(
     const authUser = c.get('authUser');
 
     const [selectedComment] = await db
-      .select({ id: standaloneTweetComments.id })
-      .from(standaloneTweetComments)
+      .select({ id: tweetComments.id })
+      .from(tweetComments)
       .where(
         and(
-          eq(standaloneTweetComments.id, commentId),
-          eq(standaloneTweetComments.userId, authUser.userId),
-          eq(standaloneTweetComments.tweetId, tweetId),
+          eq(tweetComments.id, commentId),
+          eq(tweetComments.userId, authUser.userId),
+          eq(tweetComments.tweetId, tweetId),
         ),
       );
 
@@ -64,21 +64,21 @@ export const updateComment = zValidator(
       });
 
     const [updatedComment] = await db
-      .update(standaloneTweetComments)
+      .update(tweetComments)
       .set({
         content: content,
       })
       .where(
         and(
-          eq(standaloneTweetComments.id, commentId),
-          eq(standaloneTweetComments.userId, authUser.userId),
-          eq(standaloneTweetComments.tweetId, tweetId),
+          eq(tweetComments.id, commentId),
+          eq(tweetComments.userId, authUser.userId),
+          eq(tweetComments.tweetId, tweetId),
         ),
       )
       .returning({
-        content: standaloneTweetComments.content,
-        tweetId: standaloneTweetComments.tweetId,
-        userId: standaloneTweetComments.userId,
+        content: tweetComments.content,
+        tweetId: tweetComments.tweetId,
+        userId: tweetComments.userId,
       });
 
     return c.json({
@@ -98,14 +98,9 @@ export const deleteComment = zValidator('query', commentIdSchema, async (res, c)
   const authUser = c.get('authUser');
 
   const [selectedComment] = await db
-    .select({ id: standaloneTweetComments.id })
-    .from(standaloneTweetComments)
-    .where(
-      and(
-        eq(standaloneTweetComments.id, commentId),
-        eq(standaloneTweetComments.userId, authUser.userId),
-      ),
-    );
+    .select({ id: tweetComments.id })
+    .from(tweetComments)
+    .where(and(eq(tweetComments.id, commentId), eq(tweetComments.userId, authUser.userId)));
 
   if (!selectedComment)
     throw new HTTPException(404, {
@@ -114,14 +109,9 @@ export const deleteComment = zValidator('query', commentIdSchema, async (res, c)
     });
 
   const [deletedComment] = await db
-    .delete(standaloneTweetComments)
-    .where(
-      and(
-        eq(standaloneTweetComments.id, commentId),
-        eq(standaloneTweetComments.userId, authUser.userId),
-      ),
-    )
-    .returning({ id: standaloneTweetComments.id });
+    .delete(tweetComments)
+    .where(and(eq(tweetComments.id, commentId), eq(tweetComments.userId, authUser.userId)))
+    .returning({ id: tweetComments.id });
 
   return c.json({
     message: 'Comment deleted successfully',
@@ -141,19 +131,19 @@ export const getCommentsByTweetId = zValidator(
 
     const comments = await db
       .select({
-        id: standaloneTweetComments.id,
-        content: standaloneTweetComments.content,
+        id: tweetComments.id,
+        content: tweetComments.content,
         user: {
-          id: standaloneUsers.id,
-          userName: standaloneUsers.userName,
-          displayName: standaloneUsers.displayName,
-          avatarUrl: standaloneUsers.avatarUrl,
+          id: users.id,
+          userName: users.userName,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
         },
-        createdAt: standaloneTweetComments.createdAt,
+        createdAt: tweetComments.createdAt,
       })
-      .from(standaloneTweetComments)
-      .where(eq(standaloneTweetComments.tweetId, tweetId))
-      .innerJoin(standaloneUsers, eq(standaloneUsers.id, standaloneTweetComments.userId))
+      .from(tweetComments)
+      .where(eq(tweetComments.tweetId, tweetId))
+      .innerJoin(users, eq(users.id, tweetComments.userId))
       .orderBy((t) => desc(t.createdAt))
       .offset(offset)
       .limit(limit + 1);

@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { standaloneUsers } from '../db/schema';
+import { users } from '../db/schema';
 import { utapi } from '../lib/uploadthing';
 import { errorFormat, getUploadthingFileKey } from '../lib/utils';
 import {
@@ -23,19 +23,19 @@ export const updateBasicInfo = zValidator('json', updateBasicInfoSchema, async (
   const { displayName, bio, website } = res.data;
 
   const [updatedUser] = await db
-    .update(standaloneUsers)
+    .update(users)
     .set({ displayName, bio, website })
-    .where(eq(standaloneUsers.id, authUser.userId))
+    .where(eq(users.id, authUser.userId))
     .returning({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      website: standaloneUsers.website,
-      followerCount: standaloneUsers.followerCount,
-      followingCount: standaloneUsers.followingCount,
-      tweetCount: standaloneUsers.tweetCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      website: users.website,
+      followerCount: users.followerCount,
+      followingCount: users.followingCount,
+      tweetCount: users.tweetCount,
     });
 
   return c.json({
@@ -55,8 +55,8 @@ export const updateUsername = zValidator('json', updateUsernameSchema, async (re
 
   const [usernameExists] = await db
     .select()
-    .from(standaloneUsers)
-    .where(and(eq(standaloneUsers.userName, userName), ne(standaloneUsers.id, authUser.userId)));
+    .from(users)
+    .where(and(eq(users.userName, userName), ne(users.id, authUser.userId)));
 
   if (usernameExists)
     throw new HTTPException(409, {
@@ -65,19 +65,19 @@ export const updateUsername = zValidator('json', updateUsernameSchema, async (re
     });
 
   const [updatedUser] = await db
-    .update(standaloneUsers)
+    .update(users)
     .set({ userName })
-    .where(eq(standaloneUsers.id, authUser.userId))
+    .where(eq(users.id, authUser.userId))
     .returning({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      website: standaloneUsers.website,
-      followerCount: standaloneUsers.followerCount,
-      followingCount: standaloneUsers.followingCount,
-      tweetCount: standaloneUsers.tweetCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      website: users.website,
+      followerCount: users.followerCount,
+      followingCount: users.followingCount,
+      tweetCount: users.tweetCount,
     });
 
   return c.json({
@@ -97,31 +97,31 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
 
   const users = await db
     .select({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      website: standaloneUsers.website,
-      followerCount: standaloneUsers.followerCount,
-      followingCount: standaloneUsers.followingCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      website: users.website,
+      followerCount: users.followerCount,
+      followingCount: users.followingCount,
       rank: sql<number>`ts_rank(
-        setweight(to_tsvector('english', ${standaloneUsers.userName}), 'A') ||
-        setweight(to_tsvector('english', ${standaloneUsers.displayName}), 'B'),
+        setweight(to_tsvector('english', ${users.userName}), 'A') ||
+        setweight(to_tsvector('english', ${users.displayName}), 'B'),
         websearch_to_tsquery('english', ${searchString})
       )`,
-      tweetCount: standaloneUsers.tweetCount,
+      tweetCount: users.tweetCount,
     })
-    .from(standaloneUsers)
+    .from(users)
     .where(
       and(
         sql`
           (
-            setweight(to_tsvector('english', ${standaloneUsers.userName}), 'A') ||
-            setweight(to_tsvector('english', ${standaloneUsers.displayName}), 'B')
+            setweight(to_tsvector('english', ${users.userName}), 'A') ||
+            setweight(to_tsvector('english', ${users.displayName}), 'B')
           ) @@ websearch_to_tsquery('english', ${searchString})
         `,
-        ne(standaloneUsers.id, authUser.userId),
+        ne(users.id, authUser.userId),
       ),
     )
     .orderBy((table) => [desc(table.rank)])
@@ -140,9 +140,9 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
   const { avatar } = res.data;
 
   const [prevUser] = await db
-    .select({ avatarUrl: standaloneUsers.avatarUrl })
-    .from(standaloneUsers)
-    .where(eq(standaloneUsers.id, authUser.userId));
+    .select({ avatarUrl: users.avatarUrl })
+    .from(users)
+    .where(eq(users.id, authUser.userId));
 
   if (!prevUser)
     throw new HTTPException(404, {
@@ -153,19 +153,19 @@ export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c
   const uploadedFile = await utapi.uploadFiles(avatar);
 
   const [user] = await db
-    .update(standaloneUsers)
+    .update(users)
     .set({ avatarUrl: uploadedFile.data?.ufsUrl })
-    .where(eq(standaloneUsers.id, authUser.userId))
+    .where(eq(users.id, authUser.userId))
     .returning({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      website: standaloneUsers.website,
-      followerCount: standaloneUsers.followerCount,
-      followingCount: standaloneUsers.followingCount,
-      tweetCount: standaloneUsers.tweetCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      website: users.website,
+      followerCount: users.followerCount,
+      followingCount: users.followingCount,
+      tweetCount: users.tweetCount,
     });
 
   const prevKey = prevUser.avatarUrl && getUploadthingFileKey(prevUser.avatarUrl);
@@ -183,18 +183,18 @@ export const getProfile = zValidator('query', getProfileSchema, async (res, c) =
 
   const [user] = await db
     .select({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      website: standaloneUsers.website,
-      followerCount: standaloneUsers.followerCount,
-      followingCount: standaloneUsers.followingCount,
-      tweetCount: standaloneUsers.tweetCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      website: users.website,
+      followerCount: users.followerCount,
+      followingCount: users.followingCount,
+      tweetCount: users.tweetCount,
     })
-    .from(standaloneUsers)
-    .where(eq(standaloneUsers.id, userId))
+    .from(users)
+    .where(eq(users.id, userId))
     .limit(1);
 
   if (!user)

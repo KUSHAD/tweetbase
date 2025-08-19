@@ -6,23 +6,21 @@ import {
   index,
   integer,
   pgEnum,
-  pgTableCreator,
+  pgTable,
   primaryKey,
   text,
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
 
-const pgTable = pgTableCreator((name) => `standalone_${name}`);
-
-export const standaloneVerificationTokenType = pgEnum('standalone_verification_token_type', [
+export const verificationTokenType = pgEnum('verification_token_type', [
   'EMAIL_VERIFICATION',
   'PASSWORD_RESET',
 ]);
 
-export const standaloneTweetType = pgEnum('standalone_tweet_type', ['TWEET', 'RETWEET', 'QUOTE']);
+export const tweetType = pgEnum('tweet_type', ['TWEET', 'RETWEET', 'QUOTE']);
 
-export const standaloneAccounts = pgTable('accounts', {
+export const accounts = pgTable('accounts', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
@@ -36,16 +34,16 @@ export const standaloneAccounts = pgTable('accounts', {
     .notNull(),
 });
 
-export const standaloneSessions = pgTable('sessions', {
+export const sessions = pgTable('sessions', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
   accountId: text('account_id')
     .notNull()
-    .references(() => standaloneAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    .references(() => accounts.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   userId: text('user_id')
     .notNull()
-    .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   refreshToken: text('refresh_token').notNull().unique(),
   userAgent: text('user_agent'),
   ipAddress: text('ip_address'),
@@ -53,23 +51,23 @@ export const standaloneSessions = pgTable('sessions', {
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
 
-export const standaloneVerificationTokens = pgTable('verification_tokens', {
+export const verificationTokens = pgTable('verification_tokens', {
   id: text('id')
     .$defaultFn(() => createId())
     .primaryKey(),
   accountId: text('account_id')
     .notNull()
-    .references(() => standaloneAccounts.id, { onDelete: 'cascade' }),
+    .references(() => accounts.id, { onDelete: 'cascade' }),
   userId: text('user_id')
     .notNull()
-    .references(() => standaloneUsers.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull(),
-  tokenType: standaloneVerificationTokenType('token_type').notNull(),
+  tokenType: verificationTokenType('token_type').notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
 
-export const standaloneUsers = pgTable(
+export const users = pgTable(
   'users',
   {
     id: text('id')
@@ -86,7 +84,7 @@ export const standaloneUsers = pgTable(
     followerCount: integer('follower_count').notNull().default(0),
     followingCount: integer('following_count').notNull().default(0),
     accountId: text('account_id')
-      .references(() => standaloneAccounts.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .references(() => accounts.id, { onDelete: 'cascade', onUpdate: 'cascade' })
       .notNull(),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -95,21 +93,21 @@ export const standaloneUsers = pgTable(
       .notNull(),
   },
   (table) => [
-    index('standalone_users_search_index').using(
+    index('users_search_index').using(
       'gin',
       sql`to_tsvector('english', ${table.userName} || ' ' || ${table.displayName})`,
     ),
   ],
 );
 
-export const standaloneFollows = pgTable(
+export const follows = pgTable(
   'follows',
   {
     followerId: text('follower_id')
-      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' })
       .notNull(),
     followingId: text('following_id')
-      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' })
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' })
       .notNull(),
     createdAt: timestamp('created_at').defaultNow(),
   },
@@ -117,12 +115,12 @@ export const standaloneFollows = pgTable(
     primaryKey({
       columns: [table.followerId, table.followingId],
     }),
-    index('standalone_follows_follower_idx').on(table.followerId),
-    index('standalone_follows_following_idx').on(table.followingId),
+    index('follows_follower_idx').on(table.followerId),
+    index('follows_following_idx').on(table.followingId),
   ],
 );
 
-export const standaloneTweets = pgTable(
+export const tweets = pgTable(
   'tweets',
   {
     id: text('id')
@@ -130,11 +128,11 @@ export const standaloneTweets = pgTable(
       .$defaultFn(() => createId()),
     userId: text('user_id')
       .notNull()
-      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     content: varchar('content', { length: 280 }),
     mediaUrl: text('media_url'),
-    type: standaloneTweetType('type').default('TWEET').notNull(),
-    originalTweetId: text('original_tweet_id').references((): AnyPgColumn => standaloneTweets.id, {
+    type: tweetType('type').default('TWEET').notNull(),
+    originalTweetId: text('original_tweet_id').references((): AnyPgColumn => tweets.id, {
       onDelete: 'set null',
       onUpdate: 'cascade',
     }),
@@ -149,22 +147,22 @@ export const standaloneTweets = pgTable(
       .notNull(),
   },
   (table) => [
-    index('standalone_tweets_user_idx').on(table.userId),
-    index('standalone_tweets_type_idx').on(table.type),
-    index('standalone_tweets_original_idx').on(table.originalTweetId),
+    index('tweets_user_idx').on(table.userId),
+    index('tweets_type_idx').on(table.type),
+    index('tweets_original_idx').on(table.originalTweetId),
   ],
 );
 
-export const standaloneTweetComments = pgTable(
+export const tweetComments = pgTable(
   'tweet_comments',
   {
     id: text('id').primaryKey().$defaultFn(createId),
     userId: text('user_id')
       .notNull()
-      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     tweetId: text('tweet_id')
       .notNull()
-      .references(() => standaloneTweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => tweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     content: varchar('content', { length: 150 }).notNull(),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -173,25 +171,25 @@ export const standaloneTweetComments = pgTable(
       .notNull(),
   },
   (table) => [
-    index('standalone_tweet_comments_tweet_idx').on(table.tweetId),
-    index('standalone_tweet_comments_user_idx').on(table.userId),
+    index('tweet_comments_tweet_idx').on(table.tweetId),
+    index('tweet_comments_user_idx').on(table.userId),
   ],
 );
 
-export const standaloneTweetLikes = pgTable(
+export const tweetLikes = pgTable(
   'tweet_likes',
   {
     userId: text('user_id')
       .notNull()
-      .references(() => standaloneUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     tweetId: text('tweet_id')
       .notNull()
-      .references(() => standaloneTweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+      .references(() => tweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.tweetId] }),
-    index('standalone_tweet_likes_user_idx').on(table.userId),
-    index('standalone_tweet_likes_tweet_idx').on(table.tweetId),
+    index('tweet_likes_user_idx').on(table.userId),
+    index('tweet_likes_tweet_idx').on(table.tweetId),
   ],
 );

@@ -7,30 +7,30 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 
+import { every } from 'hono/combine';
 import { HTTPException } from 'hono/http-exception';
 import { limiter } from './lib/rate-limit';
 import router from './routes';
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
-// 🌐 Enable CORS globally
-app.use('*', cors());
-
-// 🚫 Global rate limiter (Upstash Redis-backed)
-app.use('*', limiter);
-
-// 🆔 Attach a request ID to every request
 app.use(
   '*',
-  requestId({
-    generator: () => createId(),
-  }),
+  every(
+    // 🌐 Enable CORS globally
+    cors(),
+    // 🚫 Global rate limiter (Upstash Redis-backed)
+    limiter,
+    // 🆔 Attach a request ID to every request
+    requestId({
+      generator: () => createId(),
+    }),
+    // 📜 Log each request (includes request ID)
+    logger(),
+  ),
 );
 
-// 📜 Log each request (includes request ID)
-app.use('*', logger());
-
-// 🧠 Optionally cache GET responses
+// 🧠 Cache GET responses
 app.get(
   '*',
   cache({

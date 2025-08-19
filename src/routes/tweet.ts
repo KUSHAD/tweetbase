@@ -7,8 +7,8 @@ import {
   newTweet,
   quoteTweet,
   retweet,
-} from '../../controller/tweet';
-import { authMiddleware } from '../../middleware/auth';
+} from '../controller/tweet';
+import { authMiddleware } from '../middleware/auth';
 
 const tweetRouter = new Hono();
 

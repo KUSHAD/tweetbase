@@ -4,8 +4,8 @@ import {
   deleteComment,
   getCommentsByTweetId,
   updateComment,
-} from '../../controller/comment';
-import { authMiddleware } from '../../middleware/auth';
+} from '../controller/comment';
+import { authMiddleware } from '../middleware/auth';
 
 const commentRouter = new Hono();
 

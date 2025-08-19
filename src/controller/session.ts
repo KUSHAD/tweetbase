@@ -3,7 +3,7 @@ import { addDays } from 'date-fns';
 import { and, eq, gt } from 'drizzle-orm';
 
 import { db } from '../db';
-import { standaloneSessions, standaloneUsers } from '../db/schema';
+import { sessions, users } from '../db/schema';
 
 import { errorFormat, generateAccessToken, generateRefreshToken } from '../lib/utils';
 
@@ -19,17 +19,17 @@ export const me = async (c: Context) => {
 
   const [row] = await db
     .select({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      website: standaloneUsers.website,
-      followerCount: standaloneUsers.followerCount,
-      followingCount: standaloneUsers.followingCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      website: users.website,
+      followerCount: users.followerCount,
+      followingCount: users.followingCount,
     })
-    .from(standaloneUsers)
-    .where(eq(standaloneUsers.id, authUser.userId));
+    .from(users)
+    .where(eq(users.id, authUser.userId));
 
   if (!row) throw new HTTPException(404, { message: 'User not found', cause: 'Invalid userId' });
   return c.json({ message: 'Profile', data: { user: row } });
@@ -39,10 +39,7 @@ export const rotateRefreshToken = zValidator('json', logoutSchema, async (res, c
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
   const { refreshToken } = res.data;
 
-  const [session] = await db
-    .select()
-    .from(standaloneSessions)
-    .where(eq(standaloneSessions.refreshToken, refreshToken));
+  const [session] = await db.select().from(sessions).where(eq(sessions.refreshToken, refreshToken));
   if (!session)
     throw new HTTPException(401, { message: 'Invalid refresh token', cause: 'Session not found' });
 
@@ -56,9 +53,9 @@ export const rotateRefreshToken = zValidator('json', logoutSchema, async (res, c
   });
 
   await db
-    .update(standaloneSessions)
+    .update(sessions)
     .set({ refreshToken: newRefreshToken, expiresAt: addDays(new Date(), 30) })
-    .where(eq(standaloneSessions.id, session.id));
+    .where(eq(sessions.id, session.id));
 
   return c.json({
     message: 'Token rotated',
@@ -76,18 +73,18 @@ export const getActiveSessions = async (c: Context) => {
 
   const sessions = await db
     .select({
-      id: standaloneSessions.id,
-      ipAddress: standaloneSessions.ipAddress,
-      userAgent: standaloneSessions.userAgent,
-      createdAt: standaloneSessions.createdAt,
-      expiresAt: standaloneSessions.expiresAt,
+      id: sessions.id,
+      ipAddress: sessions.ipAddress,
+      userAgent: sessions.userAgent,
+      createdAt: sessions.createdAt,
+      expiresAt: sessions.expiresAt,
     })
-    .from(standaloneSessions)
+    .from(sessions)
     .where(
       and(
-        eq(standaloneSessions.userId, authUser.userId),
-        eq(standaloneSessions.accountId, authUser.accountId),
-        gt(standaloneSessions.expiresAt, new Date()),
+        eq(sessions.userId, authUser.userId),
+        eq(sessions.accountId, authUser.accountId),
+        gt(sessions.expiresAt, new Date()),
       ),
     );
 
@@ -104,12 +101,12 @@ export const revokeSession = zValidator('query', revokeSessionSchema, async (res
 
   const [session] = await db
     .select()
-    .from(standaloneSessions)
+    .from(sessions)
     .where(
       and(
-        eq(standaloneSessions.id, sessionId),
-        eq(standaloneSessions.userId, authUser.userId),
-        eq(standaloneSessions.accountId, authUser.accountId),
+        eq(sessions.id, sessionId),
+        eq(sessions.userId, authUser.userId),
+        eq(sessions.accountId, authUser.accountId),
       ),
     )
     .limit(1);
@@ -120,6 +117,6 @@ export const revokeSession = zValidator('query', revokeSessionSchema, async (res
       cause: 'Invalid sessionId or no permission',
     });
 
-  await db.delete(standaloneSessions).where(eq(standaloneSessions.id, sessionId));
+  await db.delete(sessions).where(eq(sessions.id, sessionId));
   return c.json({ message: 'Session revoked successfully' });
 });

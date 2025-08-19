@@ -3,7 +3,7 @@ import { and, desc, eq, notInArray, sql } from 'drizzle-orm';
 import { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { standaloneFollows, standaloneUsers } from '../db/schema';
+import { follows, users } from '../db/schema';
 import { errorFormat } from '../lib/utils';
 import { followSchema } from '../validators/network';
 import { paginationSchema } from '../validators/utils';
@@ -21,21 +21,21 @@ export const followUser = zValidator('json', followSchema, async (result, c) => 
     });
 
   const [inserted] = await db
-    .insert(standaloneFollows)
+    .insert(follows)
     .values({ followerId: authUser.userId, followingId: targetUserId })
     .onConflictDoNothing()
     .returning();
 
   if (inserted) {
     await db
-      .update(standaloneUsers)
-      .set({ followingCount: sql`${standaloneUsers.followingCount} + 1` })
-      .where(eq(standaloneUsers.id, authUser.userId));
+      .update(users)
+      .set({ followingCount: sql`${users.followingCount} + 1` })
+      .where(eq(users.id, authUser.userId));
 
     await db
-      .update(standaloneUsers)
-      .set({ followerCount: sql`${standaloneUsers.followerCount} + 1` })
-      .where(eq(standaloneUsers.id, targetUserId));
+      .update(users)
+      .set({ followerCount: sql`${users.followerCount} + 1` })
+      .where(eq(users.id, targetUserId));
   }
 
   return c.json({
@@ -51,25 +51,20 @@ export const unfollowUser = zValidator('json', followSchema, async (result, c) =
   const authUser = c.get('authUser');
 
   const [deleted] = await db
-    .delete(standaloneFollows)
-    .where(
-      and(
-        eq(standaloneFollows.followerId, authUser.userId),
-        eq(standaloneFollows.followingId, targetUserId),
-      ),
-    )
+    .delete(follows)
+    .where(and(eq(follows.followerId, authUser.userId), eq(follows.followingId, targetUserId)))
     .returning();
 
   if (deleted) {
     await db
-      .update(standaloneUsers)
-      .set({ followingCount: sql`${standaloneUsers.followingCount} - 1` })
-      .where(eq(standaloneUsers.id, authUser.userId));
+      .update(users)
+      .set({ followingCount: sql`${users.followingCount} - 1` })
+      .where(eq(users.id, authUser.userId));
 
     await db
-      .update(standaloneUsers)
-      .set({ followerCount: sql`${standaloneUsers.followerCount} - 1` })
-      .where(eq(standaloneUsers.id, targetUserId));
+      .update(users)
+      .set({ followerCount: sql`${users.followerCount} - 1` })
+      .where(eq(users.id, targetUserId));
   }
 
   return c.json({
@@ -90,21 +85,21 @@ export const getFollowers = zValidator(
 
     const followers = await db
       .select({
-        id: standaloneUsers.id,
-        userName: standaloneUsers.userName,
-        displayName: standaloneUsers.displayName,
-        avatarUrl: standaloneUsers.avatarUrl,
+        id: users.id,
+        userName: users.userName,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
         isMutual: sql<boolean>`EXISTS (
         SELECT 1 FROM standalone_follows AS f2
         WHERE f2.follower_id = ${authUser.userId}
-        AND f2.following_id = ${standaloneUsers.id}
+        AND f2.following_id = ${users.id}
       )`.as('isMutual'),
-        tweetCount: standaloneUsers.tweetCount,
+        tweetCount: users.tweetCount,
       })
-      .from(standaloneFollows)
-      .innerJoin(standaloneUsers, eq(standaloneFollows.followerId, standaloneUsers.id))
-      .where(eq(standaloneFollows.followingId, targetUserId))
-      .orderBy(() => [desc(standaloneFollows.createdAt), desc(standaloneUsers.id)])
+      .from(follows)
+      .innerJoin(users, eq(follows.followerId, users.id))
+      .where(eq(follows.followingId, targetUserId))
+      .orderBy(() => [desc(follows.createdAt), desc(users.id)])
       .offset(offset)
       .limit(limit + 1);
 
@@ -130,21 +125,21 @@ export const getFollowing = zValidator(
 
     const following = await db
       .select({
-        id: standaloneUsers.id,
-        userName: standaloneUsers.userName,
-        displayName: standaloneUsers.displayName,
-        avatarUrl: standaloneUsers.avatarUrl,
+        id: users.id,
+        userName: users.userName,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
         isMutual: sql<boolean>`EXISTS (
         SELECT 1 FROM standalone_follows AS f2
-        WHERE f2.follower_id = ${standaloneUsers.id}
+        WHERE f2.follower_id = ${users.id}
         AND f2.following_id = ${authUser.userId}
       )`.as('isMutual'),
-        tweetCount: standaloneUsers.tweetCount,
+        tweetCount: users.tweetCount,
       })
-      .from(standaloneFollows)
-      .innerJoin(standaloneUsers, eq(standaloneFollows.followingId, standaloneUsers.id))
-      .where(eq(standaloneFollows.followerId, targetUserId))
-      .orderBy(() => [desc(standaloneFollows.createdAt), desc(standaloneUsers.id)])
+      .from(follows)
+      .innerJoin(users, eq(follows.followingId, users.id))
+      .where(eq(follows.followerId, targetUserId))
+      .orderBy(() => [desc(follows.createdAt), desc(users.id)])
       .offset(offset)
       .limit(limit + 1);
 
@@ -163,34 +158,34 @@ export const getSuggestedFollows = async (c: Context) => {
   const userId = authUser.userId;
 
   const alreadyFollowing = await db
-    .select({ id: standaloneFollows.followingId })
-    .from(standaloneFollows)
-    .where(eq(standaloneFollows.followerId, userId));
+    .select({ id: follows.followingId })
+    .from(follows)
+    .where(eq(follows.followerId, userId));
 
   const alreadyFollowingIds = alreadyFollowing.map((f) => f.id);
 
   const suggestions = await db
     .select({
-      id: standaloneUsers.id,
-      userName: standaloneUsers.userName,
-      displayName: standaloneUsers.displayName,
-      avatarUrl: standaloneUsers.avatarUrl,
-      bio: standaloneUsers.bio,
-      followerCount: standaloneUsers.followerCount,
+      id: users.id,
+      userName: users.userName,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      followerCount: users.followerCount,
       mutualFollowCount: sql<number>`(
         SELECT COUNT(*) FROM standalone_follows AS f2
         WHERE f2.follower_id IN (
           SELECT following_id FROM standalone_follows
           WHERE follower_id = ${userId}
         )
-        AND f2.following_id = ${standaloneUsers.id}
+        AND f2.following_id = ${users.id}
       )`
         .mapWith(Number)
         .as('mutualFollowCount'),
-      tweetCount: standaloneUsers.tweetCount,
+      tweetCount: users.tweetCount,
     })
-    .from(standaloneUsers)
-    .where(and(notInArray(standaloneUsers.id, [...alreadyFollowingIds, userId])))
+    .from(users)
+    .where(and(notInArray(users.id, [...alreadyFollowingIds, userId])))
     .orderBy((t) => [desc(t.mutualFollowCount), desc(t.followerCount)])
     .limit(10);
 

@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { standaloneTweets, standaloneUsers } from '../db/schema';
+import { tweets, users } from '../db/schema';
 import { originalTweet, originalTweetUser } from '../lib/db-alias';
 import { utapi } from '../lib/uploadthing';
 import { errorFormat, getUploadthingFileKey } from '../lib/utils';
@@ -19,7 +19,7 @@ export const newTweet = zValidator('form', newTweetSchema, async (res, c) => {
   const uploadedMedia = media ? await utapi.uploadFiles(media) : null;
 
   const [newTweet] = await db
-    .insert(standaloneTweets)
+    .insert(tweets)
     .values({
       userId: authUser.userId,
       content,
@@ -29,14 +29,14 @@ export const newTweet = zValidator('form', newTweetSchema, async (res, c) => {
     .returning();
 
   const [updatedUser] = await db
-    .update(standaloneUsers)
-    .set({ tweetCount: sql`${standaloneUsers.tweetCount} + 1` })
-    .where(eq(standaloneUsers.id, authUser.userId))
+    .update(users)
+    .set({ tweetCount: sql`${users.tweetCount} + 1` })
+    .where(eq(users.id, authUser.userId))
     .returning({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
-      tweetCount: standaloneUsers.tweetCount,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
+      tweetCount: users.tweetCount,
     });
 
   return c.json({
@@ -59,21 +59,21 @@ export const getTweet = zValidator('query', getTweetSchema, async (res, c) => {
 
   const [tweet] = await db
     .select({
-      id: standaloneTweets.id,
-      content: standaloneTweets.content,
-      mediaUrl: standaloneTweets.mediaUrl,
-      type: standaloneTweets.type,
-      likeCount: standaloneTweets.likeCount,
-      commentCount: standaloneTweets.commentCount,
-      quoteCount: standaloneTweets.quoteCount,
-      retweetCount: standaloneTweets.retweetCount,
-      createdAt: standaloneTweets.createdAt,
-      updatedAt: standaloneTweets.updatedAt,
+      id: tweets.id,
+      content: tweets.content,
+      mediaUrl: tweets.mediaUrl,
+      type: tweets.type,
+      likeCount: tweets.likeCount,
+      commentCount: tweets.commentCount,
+      quoteCount: tweets.quoteCount,
+      retweetCount: tweets.retweetCount,
+      createdAt: tweets.createdAt,
+      updatedAt: tweets.updatedAt,
       user: {
-        id: standaloneUsers.id,
-        displayName: standaloneUsers.displayName,
-        userName: standaloneUsers.userName,
-        avatarUrl: standaloneUsers.avatarUrl,
+        id: users.id,
+        displayName: users.displayName,
+        userName: users.userName,
+        avatarUrl: users.avatarUrl,
       },
       originalTweet: {
         id: originalTweet.id,
@@ -88,11 +88,11 @@ export const getTweet = zValidator('query', getTweetSchema, async (res, c) => {
         avatarUrl: originalTweetUser.avatarUrl,
       },
     })
-    .from(standaloneTweets)
-    .innerJoin(standaloneUsers, eq(standaloneTweets.userId, standaloneUsers.id))
-    .leftJoin(originalTweet, eq(standaloneTweets.originalTweetId, originalTweet.id))
+    .from(tweets)
+    .innerJoin(users, eq(tweets.userId, users.id))
+    .leftJoin(originalTweet, eq(tweets.originalTweetId, originalTweet.id))
     .leftJoin(originalTweetUser, eq(originalTweet.userId, originalTweetUser.id))
-    .where(eq(standaloneTweets.id, tweetId))
+    .where(eq(tweets.id, tweetId))
     .limit(1);
 
   if (!tweet)
@@ -112,14 +112,14 @@ export const deleteTweet = zValidator('query', getTweetSchema, async (res, c) =>
 
   const [tweet] = await db
     .select({
-      id: standaloneTweets.id,
-      userId: standaloneTweets.userId,
-      mediaUrl: standaloneTweets.mediaUrl,
-      originalTweetId: standaloneTweets.originalTweetId,
-      type: standaloneTweets.type,
+      id: tweets.id,
+      userId: tweets.userId,
+      mediaUrl: tweets.mediaUrl,
+      originalTweetId: tweets.originalTweetId,
+      type: tweets.type,
     })
-    .from(standaloneTweets)
-    .where(and(eq(standaloneTweets.id, tweetId), eq(standaloneTweets.userId, authUser.userId)))
+    .from(tweets)
+    .where(and(eq(tweets.id, tweetId), eq(tweets.userId, authUser.userId)))
     .limit(1);
 
   if (!tweet)
@@ -136,25 +136,25 @@ export const deleteTweet = zValidator('query', getTweetSchema, async (res, c) =>
   if (tweet.originalTweetId && tweet.type !== 'TWEET') {
     const field =
       tweet.type === 'RETWEET'
-        ? standaloneTweets.retweetCount
+        ? tweets.retweetCount
         : tweet.type === 'QUOTE'
-          ? standaloneTweets.quoteCount
+          ? tweets.quoteCount
           : null;
 
     if (field) {
       await db
-        .update(standaloneTweets)
+        .update(tweets)
         .set({ [field.name]: sql`${field} - 1` })
-        .where(eq(standaloneTweets.id, tweet.originalTweetId));
+        .where(eq(tweets.id, tweet.originalTweetId));
     }
   }
 
-  await db.delete(standaloneTweets).where(eq(standaloneTweets.id, tweetId));
+  await db.delete(tweets).where(eq(tweets.id, tweetId));
 
   await db
-    .update(standaloneUsers)
-    .set({ tweetCount: sql`${standaloneUsers.tweetCount} - 1` })
-    .where(eq(standaloneUsers.id, authUser.userId));
+    .update(users)
+    .set({ tweetCount: sql`${users.tweetCount} - 1` })
+    .where(eq(users.id, authUser.userId));
 
   return c.json({ message: 'Tweet deleted', data: { tweetId } });
 });
@@ -170,17 +170,12 @@ export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
 
   const [tweet] = await db
     .select({
-      id: standaloneTweets.id,
-      mediaUrl: standaloneTweets.mediaUrl,
-      type: standaloneTweets.type,
+      id: tweets.id,
+      mediaUrl: tweets.mediaUrl,
+      type: tweets.type,
     })
-    .from(standaloneTweets)
-    .where(
-      and(
-        eq(standaloneTweets.id, parsed.data.tweetId),
-        eq(standaloneTweets.userId, authUser.userId),
-      ),
-    )
+    .from(tweets)
+    .where(and(eq(tweets.id, parsed.data.tweetId), eq(tweets.userId, authUser.userId)))
     .limit(1);
 
   if (!tweet)
@@ -221,32 +216,22 @@ export const editTweet = zValidator('form', newTweetSchema, async (res, c) => {
   }
 
   const [updatedTweet] = await db
-    .update(standaloneTweets)
+    .update(tweets)
     .set({
       content,
       mediaUrl: newMediaUrl ?? (media ? null : tweet.mediaUrl),
     })
-    .where(
-      and(
-        eq(standaloneTweets.id, parsed.data.tweetId),
-        eq(standaloneTweets.userId, authUser.userId),
-      ),
-    )
+    .where(and(eq(tweets.id, parsed.data.tweetId), eq(tweets.userId, authUser.userId)))
     .returning();
 
   const [user] = await db
     .select({
-      id: standaloneUsers.id,
-      displayName: standaloneUsers.displayName,
-      userName: standaloneUsers.userName,
+      id: users.id,
+      displayName: users.displayName,
+      userName: users.userName,
     })
-    .from(standaloneUsers)
-    .where(
-      and(
-        eq(standaloneUsers.id, authUser.userId),
-        eq(standaloneUsers.accountId, authUser.accountId),
-      ),
-    )
+    .from(users)
+    .where(and(eq(users.id, authUser.userId), eq(users.accountId, authUser.accountId)))
     .limit(1);
 
   return c.json({
@@ -268,22 +253,22 @@ export const retweet = zValidator('query', getTweetSchema, async (res, c) => {
 
   const [ogTweet] = await db
     .select({
-      id: standaloneTweets.id,
-      userId: standaloneTweets.userId,
-      content: standaloneTweets.content,
-      mediaUrl: standaloneTweets.mediaUrl,
-      retweetCount: standaloneTweets.retweetCount,
-      createdAt: standaloneTweets.createdAt,
+      id: tweets.id,
+      userId: tweets.userId,
+      content: tweets.content,
+      mediaUrl: tweets.mediaUrl,
+      retweetCount: tweets.retweetCount,
+      createdAt: tweets.createdAt,
       user: {
-        id: standaloneUsers.id,
-        displayName: standaloneUsers.displayName,
-        userName: standaloneUsers.userName,
-        avatarUrl: standaloneUsers.avatarUrl,
+        id: users.id,
+        displayName: users.displayName,
+        userName: users.userName,
+        avatarUrl: users.avatarUrl,
       },
     })
-    .from(standaloneTweets)
-    .where(eq(standaloneTweets.id, tweetId))
-    .innerJoin(standaloneUsers, eq(standaloneUsers.id, standaloneTweets.userId))
+    .from(tweets)
+    .where(eq(tweets.id, tweetId))
+    .innerJoin(users, eq(users.id, tweets.userId))
     .limit(1);
 
   if (!ogTweet)
@@ -296,13 +281,13 @@ export const retweet = zValidator('query', getTweetSchema, async (res, c) => {
     });
 
   const [alreadyRetweeted] = await db
-    .select({ id: standaloneTweets.id })
-    .from(standaloneTweets)
+    .select({ id: tweets.id })
+    .from(tweets)
     .where(
       and(
-        eq(standaloneTweets.userId, authUser.userId),
-        eq(standaloneTweets.originalTweetId, tweetId),
-        eq(standaloneTweets.type, 'RETWEET'),
+        eq(tweets.userId, authUser.userId),
+        eq(tweets.originalTweetId, tweetId),
+        eq(tweets.type, 'RETWEET'),
       ),
     );
 
@@ -310,7 +295,7 @@ export const retweet = zValidator('query', getTweetSchema, async (res, c) => {
     throw new HTTPException(400, { message: 'Already retweeted', cause: 'Duplicate retweet' });
 
   const [retweet] = await db
-    .insert(standaloneTweets)
+    .insert(tweets)
     .values({
       userId: authUser.userId,
       type: 'RETWEET',
@@ -319,14 +304,14 @@ export const retweet = zValidator('query', getTweetSchema, async (res, c) => {
     .returning();
 
   await db
-    .update(standaloneTweets)
-    .set({ retweetCount: sql`${standaloneTweets.retweetCount} + 1` })
-    .where(eq(standaloneTweets.id, tweetId));
+    .update(tweets)
+    .set({ retweetCount: sql`${tweets.retweetCount} + 1` })
+    .where(eq(tweets.id, tweetId));
 
   await db
-    .update(standaloneUsers)
-    .set({ tweetCount: sql`${standaloneUsers.tweetCount} + 1` })
-    .where(eq(standaloneUsers.id, authUser.userId));
+    .update(users)
+    .set({ tweetCount: sql`${users.tweetCount} + 1` })
+    .where(eq(users.id, authUser.userId));
 
   return c.json({
     message: 'Retweeted!',
@@ -357,27 +342,27 @@ export const quoteTweet = zValidator(
 
     const [ogTweet] = await db
       .select({
-        id: standaloneTweets.id,
-        content: standaloneTweets.content,
-        mediaUrl: standaloneTweets.mediaUrl,
-        createdAt: standaloneTweets.createdAt,
+        id: tweets.id,
+        content: tweets.content,
+        mediaUrl: tweets.mediaUrl,
+        createdAt: tweets.createdAt,
         user: {
-          id: standaloneUsers.id,
-          displayName: standaloneUsers.displayName,
-          userName: standaloneUsers.userName,
-          avatarUrl: standaloneUsers.avatarUrl,
+          id: users.id,
+          displayName: users.displayName,
+          userName: users.userName,
+          avatarUrl: users.avatarUrl,
         },
       })
-      .from(standaloneTweets)
-      .innerJoin(standaloneUsers, eq(standaloneUsers.id, standaloneTweets.userId))
-      .where(eq(standaloneTweets.id, tweetId))
+      .from(tweets)
+      .innerJoin(users, eq(users.id, tweets.userId))
+      .where(eq(tweets.id, tweetId))
       .limit(1);
 
     if (!ogTweet)
       throw new HTTPException(404, { message: 'Original tweet not found', cause: tweetId });
 
     const [newQuote] = await db
-      .insert(standaloneTweets)
+      .insert(tweets)
       .values({
         userId: authUser.userId,
         content,
@@ -387,19 +372,19 @@ export const quoteTweet = zValidator(
       .returning();
 
     await db
-      .update(standaloneTweets)
-      .set({ quoteCount: sql`${standaloneTweets.quoteCount} + 1` })
-      .where(eq(standaloneTweets.id, ogTweet.id));
+      .update(tweets)
+      .set({ quoteCount: sql`${tweets.quoteCount} + 1` })
+      .where(eq(tweets.id, ogTweet.id));
 
     const [updatedUser] = await db
-      .update(standaloneUsers)
-      .set({ tweetCount: sql`${standaloneUsers.tweetCount} + 1` })
-      .where(eq(standaloneUsers.id, authUser.userId))
+      .update(users)
+      .set({ tweetCount: sql`${users.tweetCount} + 1` })
+      .where(eq(users.id, authUser.userId))
       .returning({
-        id: standaloneUsers.id,
-        displayName: standaloneUsers.displayName,
-        userName: standaloneUsers.userName,
-        tweetCount: standaloneUsers.tweetCount,
+        id: users.id,
+        displayName: users.displayName,
+        userName: users.userName,
+        tweetCount: users.tweetCount,
       });
 
     return c.json({
@@ -426,21 +411,21 @@ export const getUserTweets = zValidator(
 
     const tweets = await db
       .select({
-        id: standaloneTweets.id,
-        content: standaloneTweets.content,
-        mediaUrl: standaloneTweets.mediaUrl,
-        type: standaloneTweets.type,
-        likeCount: standaloneTweets.likeCount,
-        commentCount: standaloneTweets.commentCount,
-        quoteCount: standaloneTweets.quoteCount,
-        retweetCount: standaloneTweets.retweetCount,
-        createdAt: standaloneTweets.createdAt,
-        updatedAt: standaloneTweets.updatedAt,
+        id: tweets.id,
+        content: tweets.content,
+        mediaUrl: tweets.mediaUrl,
+        type: tweets.type,
+        likeCount: tweets.likeCount,
+        commentCount: tweets.commentCount,
+        quoteCount: tweets.quoteCount,
+        retweetCount: tweets.retweetCount,
+        createdAt: tweets.createdAt,
+        updatedAt: tweets.updatedAt,
         user: {
-          id: standaloneUsers.id,
-          displayName: standaloneUsers.displayName,
-          userName: standaloneUsers.userName,
-          avatarUrl: standaloneUsers.avatarUrl,
+          id: users.id,
+          displayName: users.displayName,
+          userName: users.userName,
+          avatarUrl: users.avatarUrl,
         },
         originalTweet: {
           id: originalTweet.id,
@@ -455,11 +440,11 @@ export const getUserTweets = zValidator(
           avatarUrl: originalTweetUser.avatarUrl,
         },
       })
-      .from(standaloneTweets)
-      .innerJoin(standaloneUsers, eq(standaloneTweets.userId, standaloneUsers.id))
-      .leftJoin(originalTweet, eq(standaloneTweets.originalTweetId, originalTweet.id))
+      .from(tweets)
+      .innerJoin(users, eq(tweets.userId, users.id))
+      .leftJoin(originalTweet, eq(tweets.originalTweetId, originalTweet.id))
       .leftJoin(originalTweetUser, eq(originalTweet.userId, originalTweetUser.id))
-      .where(eq(standaloneTweets.userId, userId))
+      .where(eq(tweets.userId, userId))
       .orderBy((t) => desc(t.createdAt))
       .offset(offset)
       .limit(limit + 1);
