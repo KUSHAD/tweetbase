@@ -11,8 +11,8 @@ export const db = drizzle({
   client: sql,
   schema,
   cache: upstashCache({
-    url: process.env.REDIS_URL,
-    token: process.env.REDIS_TOKEN,
+    url: process.env.REDIS_URL!,
+    token: process.env.REDIS_TOKEN!,
     global: true,
     config: {
       keepTtl: true,

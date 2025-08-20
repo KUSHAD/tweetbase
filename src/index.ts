@@ -12,6 +12,8 @@ import { HTTPException } from 'hono/http-exception';
 import { limiter } from './lib/rate-limit';
 import router from './routes';
 
+import { GeoMiddleware } from 'hono-geo-middleware';
+
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 app.use(
@@ -25,6 +27,8 @@ app.use(
     requestId({
       generator: () => createId(),
     }),
+    // 🌍 Attach geo data to each request
+    GeoMiddleware(),
     // 📜 Log each request (includes request ID)
     logger(),
   ),

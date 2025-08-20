@@ -95,7 +95,7 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
 
   const { searchString } = res.data;
 
-  const users = await db
+  const resUsers = await db
     .select({
       id: users.id,
       displayName: users.displayName,
@@ -127,7 +127,7 @@ export const searchProfiles = zValidator('query', profileSearchSchema, async (re
     .orderBy((table) => [desc(table.rank)])
     .limit(10);
 
-  return c.json({ message: 'Profiles fetched', data: { users } });
+  return c.json({ message: 'Profiles fetched', data: { users: resUsers } });
 });
 
 export const updateAvatar = zValidator('form', updateAvatarSchema, async (res, c) => {

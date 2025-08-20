@@ -44,6 +44,9 @@ importers:
       hono:
         specifier: ^4.8.3
         version: 4.8.3
+      hono-geo-middleware:
+        specifier: ^0.1.2
+        version: 0.1.2(hono@4.8.3)
       hono-rate-limiter:
         specifier: ^0.4.2
         version: 0.4.2(hono@4.8.3)
@@ -1472,6 +1475,11 @@ packages:
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
+
+  hono-geo-middleware@0.1.2:
+    resolution: {integrity: sha512-PwBRfdmIf8ug4dgjxRUrUFKFj47G3koq7gJnBf/hVOhepmml8ikmqjN6mVdX3dBLt9XSTKVRmpNxO/euTfJgZg==}
+    peerDependencies:
+      hono: '*'
 
   hono-rate-limiter@0.4.2:
     resolution: {integrity: sha512-AAtFqgADyrmbDijcRTT/HJfwqfvhalya2Zo+MgfdrMPas3zSMD8SU03cv+ZsYwRU1swv7zgVt0shwN059yzhjw==}
@@ -3179,6 +3187,10 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
+
+  hono-geo-middleware@0.1.2(hono@4.8.3):
+    dependencies:
+      hono: 4.8.3
 
   hono-rate-limiter@0.4.2(hono@4.8.3):
     dependencies:

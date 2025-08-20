@@ -409,7 +409,7 @@ export const getUserTweets = zValidator(
 
     const { userId, limit, offset } = res.data;
 
-    const tweets = await db
+    const resTweets = await db
       .select({
         id: tweets.id,
         content: tweets.content,
@@ -449,8 +449,8 @@ export const getUserTweets = zValidator(
       .offset(offset)
       .limit(limit + 1);
 
-    const hasMore = tweets.length > limit;
-    const data = hasMore ? tweets.slice(0, -1) : tweets;
+    const hasMore = resTweets.length > limit;
+    const data = hasMore ? resTweets.slice(0, -1) : resTweets;
 
     return c.json({
       message: 'Tweets fetched successfully',

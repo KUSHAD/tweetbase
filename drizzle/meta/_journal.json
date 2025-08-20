@@ -127,6 +127,13 @@
       "when": 1755619838197,
       "tag": "0017_simple_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1755653416345,
+      "tag": "0018_tough_zarda",
+      "breakpoints": true
     }
   ]
 }

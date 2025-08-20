@@ -71,14 +71,8 @@ export const getActiveSessions = async (c: Context) => {
   if (!authUser)
     throw new HTTPException(401, { message: 'Unauthorized', cause: 'No user session' });
 
-  const sessions = await db
-    .select({
-      id: sessions.id,
-      ipAddress: sessions.ipAddress,
-      userAgent: sessions.userAgent,
-      createdAt: sessions.createdAt,
-      expiresAt: sessions.expiresAt,
-    })
+  const resSessions = await db
+    .select()
     .from(sessions)
     .where(
       and(
@@ -88,7 +82,7 @@ export const getActiveSessions = async (c: Context) => {
       ),
     );
 
-  return c.json({ message: 'Active sessions', data: { sessions } });
+  return c.json({ message: 'Active sessions', data: { sessions: resSessions } });
 };
 
 export const revokeSession = zValidator('query', revokeSessionSchema, async (res, c) => {

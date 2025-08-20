@@ -18,6 +18,7 @@ import {
   verifyEmailVerificationToken,
 } from '../lib/utils';
 
+import { getGeo } from 'hono-geo-middleware';
 import { HTTPException } from 'hono/http-exception';
 import {
   emailVerificationSchema,
@@ -60,12 +61,20 @@ export const signup = zValidator('json', signupSchema, async (res, c) => {
   const accessToken = await generateAccessToken({ userId: user.id, accountId: acc.id });
   const refreshToken = await generateRefreshToken({ userId: user.id, accountId: acc.id });
 
+  const geoData = getGeo(c);
+
   await db.insert(sessions).values({
     refreshToken,
     userId: user.id,
     accountId: acc.id,
-    ipAddress: c.req.header('x-forwarded-for') || '',
+    ipAddress: geoData.ip || '',
     userAgent: c.req.header('user-agent') || '',
+    city: geoData.city || '',
+    country: geoData.country || '',
+    location: {
+      x: geoData.latitude || 0,
+      y: geoData.longitude || 0,
+    },
     expiresAt: addDays(new Date(), 30),
   });
 
@@ -126,12 +135,20 @@ export const login = zValidator('json', loginSchema, async (res, c) => {
   const accessToken = await generateAccessToken({ userId: user.id, accountId: acc.id });
   const refreshToken = await generateRefreshToken({ userId: user.id, accountId: acc.id });
 
+  const geoData = getGeo(c);
+
   await db.insert(sessions).values({
     refreshToken,
     userId: user.id,
     accountId: acc.id,
-    ipAddress: c.req.header('x-forwarded-for') || '',
+    ipAddress: geoData.ip || '',
     userAgent: c.req.header('user-agent') || '',
+    city: geoData.city || '',
+    country: geoData.country || '',
+    location: {
+      x: geoData.latitude || 0,
+      y: geoData.longitude || 0,
+    },
     expiresAt: addDays(new Date(), 30),
   });
 

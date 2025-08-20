@@ -7,6 +7,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  point,
   primaryKey,
   text,
   timestamp,
@@ -47,6 +48,11 @@ export const sessions = pgTable('sessions', {
   refreshToken: text('refresh_token').notNull().unique(),
   userAgent: text('user_agent'),
   ipAddress: text('ip_address'),
+  city: text('city'),
+  country: text('country'),
+  location: point('location', {
+    mode: 'xy',
+  }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
 });
