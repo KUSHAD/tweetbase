@@ -32,6 +32,7 @@ export const myFeed = zValidator('query', paginationSchema, async (res, c) => {
       commentCount: tweets.commentCount,
       quoteCount: tweets.quoteCount,
       retweetCount: tweets.retweetCount,
+      bookmarkCount: tweets.bookmarkCount,
       createdAt: tweets.createdAt,
       updatedAt: tweets.updatedAt,
       user: {
@@ -98,6 +99,7 @@ export const exploreFeed = zValidator('query', paginationSchema, async (res, c) 
       commentCount: tweets.commentCount,
       quoteCount: tweets.quoteCount,
       retweetCount: tweets.retweetCount,
+      bookmarkCount: tweets.bookmarkCount,
       createdAt: tweets.createdAt,
       updatedAt: tweets.updatedAt,
       user: {

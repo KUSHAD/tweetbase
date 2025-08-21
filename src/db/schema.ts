@@ -146,6 +146,7 @@ export const tweets = pgTable(
     retweetCount: integer('retweet_count').notNull().default(0),
     quoteCount: integer('quote_count').notNull().default(0),
     commentCount: integer('comment_count').notNull().default(0),
+    bookmarkCount: integer('bookmark_count').notNull().default(0),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' })
       .defaultNow()
@@ -197,5 +198,23 @@ export const tweetLikes = pgTable(
     primaryKey({ columns: [table.userId, table.tweetId] }),
     index('tweet_likes_user_idx').on(table.userId),
     index('tweet_likes_tweet_idx').on(table.tweetId),
+  ],
+);
+
+export const tweetBookmarks = pgTable(
+  'tweet_bookmarks',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    tweetId: text('tweet_id')
+      .notNull()
+      .references(() => tweets.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.tweetId] }),
+    index('tweet_bookmarks_user_idx').on(table.userId),
+    index('tweet_bookmarks_tweet_idx').on(table.tweetId),
   ],
 );

@@ -134,6 +134,13 @@
       "when": 1755653416345,
       "tag": "0018_tough_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1755753332691,
+      "tag": "0019_misty_kitty_pryde",
+      "breakpoints": true
     }
   ]
 }

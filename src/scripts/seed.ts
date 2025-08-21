@@ -3,8 +3,17 @@ import { createId } from '@paralleldrive/cuid2';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
-import { accounts, follows, tweetComments, tweetLikes, tweets, users } from '../db/schema';
+import {
+  accounts,
+  follows,
+  tweetBookmarks,
+  tweetComments,
+  tweetLikes,
+  tweets,
+  users,
+} from '../db/schema';
 
+// --- CONFIG ---
 const TOTAL_USERS = 20;
 const TWEETS_PER_USER = 5;
 const FOLLOW_PROBABILITY = 0.3;
@@ -12,11 +21,13 @@ const RETWEET_PROBABILITY = 0.2;
 const QUOTE_PROBABILITY = 0.1;
 const LIKE_PROBABILITY = 0.4;
 const COMMENT_PROBABILITY = 0.4;
+const BOOKMARK_PROBABILITY = 0.2;
 
 async function seed(): Promise<void> {
   console.log('🧼 Clearing old data...');
   await db.delete(tweetLikes);
   await db.delete(tweetComments);
+  await db.delete(tweetBookmarks);
   await db.delete(tweets);
   await db.delete(follows);
   await db.delete(users);
@@ -25,17 +36,8 @@ async function seed(): Promise<void> {
   console.log('🌱 Seeding database...');
   const passwordHash = await bcrypt.hash('12345678', 10);
 
-  const appUsers: {
-    id: string;
-    accountId: string;
-    displayName: string;
-    userName: string;
-    avatarUrl: string;
-    bio: string;
-    website: string;
-    followerCount: number;
-    followingCount: number;
-  }[] = Array.from({ length: TOTAL_USERS }).map(() => {
+  // --- USERS ---
+  const appUsers = Array.from({ length: TOTAL_USERS }).map(() => {
     const accountId = createId();
     const id = createId();
     return {
@@ -59,24 +61,20 @@ async function seed(): Promise<void> {
       passwordHash,
     })),
   );
-
   await db.insert(users).values(appUsers);
   console.log('👥 Users and accounts created');
 
+  // --- FOLLOWS ---
   const appFollows: { followerId: string; followingId: string }[] = [];
   for (const follower of appUsers) {
     for (const following of appUsers) {
       if (follower.id !== following.id && Math.random() < FOLLOW_PROBABILITY) {
-        appFollows.push({
-          followerId: follower.id,
-          followingId: following.id,
-        });
+        appFollows.push({ followerId: follower.id, followingId: following.id });
         follower.followingCount++;
         following.followerCount++;
       }
     }
   }
-
   if (appFollows.length) {
     await db.insert(follows).values(appFollows);
     await Promise.all(
@@ -91,11 +89,12 @@ async function seed(): Promise<void> {
       ),
     );
   }
-
   console.log(`🔗 ${appFollows.length} follows created`);
 
+  // --- TWEETS ---
   const appTweets: any[] = [];
   const likes: { userId: string; tweetId: string }[] = [];
+  const bookmarks: { userId: string; tweetId: string }[] = [];
   const quoteTweets: any[] = [];
   const retweets: any[] = [];
   const comments: { id: string; userId: string; tweetId: string; content: string }[] = [];
@@ -113,22 +112,31 @@ async function seed(): Promise<void> {
         retweetCount: 0,
         quoteCount: 0,
         commentCount: 0,
+        bookmarkCount: 0,
       });
     }
   }
-
   await db.insert(tweets).values(appTweets);
   console.log(`📝 ${appTweets.length} tweets created`);
 
+  // --- INTERACTIONS ---
   for (const tweet of appTweets) {
     for (const user of appUsers) {
       if (user.id === tweet.userId) continue;
 
+      // Likes
       if (Math.random() < LIKE_PROBABILITY) {
         likes.push({ userId: user.id, tweetId: tweet.id });
         tweet.likeCount++;
       }
 
+      // Bookmarks
+      if (Math.random() < BOOKMARK_PROBABILITY) {
+        bookmarks.push({ userId: user.id, tweetId: tweet.id });
+        tweet.bookmarkCount++;
+      }
+
+      // Retweets
       if (Math.random() < RETWEET_PROBABILITY) {
         retweets.push({
           id: createId(),
@@ -141,26 +149,30 @@ async function seed(): Promise<void> {
           retweetCount: 0,
           quoteCount: 0,
           commentCount: 0,
+          bookmarkCount: 0,
         });
         tweet.retweetCount++;
       }
 
+      // Quotes (❌ no media allowed)
       if (Math.random() < QUOTE_PROBABILITY) {
         quoteTweets.push({
           id: createId(),
           userId: user.id,
           type: 'QUOTE',
           content: faker.lorem.sentence(),
-          mediaUrl: null,
+          mediaUrl: null, // 🚫 no media for quotes
           originalTweetId: tweet.id,
           likeCount: 0,
           retweetCount: 0,
           quoteCount: 0,
           commentCount: 0,
+          bookmarkCount: 0,
         });
         tweet.quoteCount++;
       }
 
+      // Comments
       if (Math.random() < COMMENT_PROBABILITY) {
         comments.push({
           id: createId(),
@@ -176,8 +188,10 @@ async function seed(): Promise<void> {
   if (retweets.length) await db.insert(tweets).values(retweets);
   if (quoteTweets.length) await db.insert(tweets).values(quoteTweets);
   if (likes.length) await db.insert(tweetLikes).values(likes);
+  if (bookmarks.length) await db.insert(tweetBookmarks).values(bookmarks);
   if (comments.length) await db.insert(tweetComments).values(comments);
 
+  // Update counts
   await Promise.all(
     appTweets.map((tweet) =>
       db
@@ -187,16 +201,19 @@ async function seed(): Promise<void> {
           retweetCount: tweet.retweetCount,
           quoteCount: tweet.quoteCount,
           commentCount: tweet.commentCount,
+          bookmarkCount: tweet.bookmarkCount,
         })
         .where(eq(tweets.id, tweet.id)),
     ),
   );
 
   console.log(`❤️ ${likes.length} likes`);
+  console.log(`🔖 ${bookmarks.length} bookmarks`);
   console.log(`🔁 ${retweets.length} retweets`);
   console.log(`🗣️ ${quoteTweets.length} quotes`);
   console.log(`💬 ${comments.length} comments`);
 
+  // Update tweetCount for users
   await Promise.all(
     appUsers.map((user) => {
       const tweetCount = [...appTweets, ...retweets, ...quoteTweets].filter(

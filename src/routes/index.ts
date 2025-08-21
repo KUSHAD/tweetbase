@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import authRouter from './auth';
+import bookmarkRouter from './bookmark';
 import commentRouter from './comment';
 import feedRouter from './feed';
 import likeRouter from './like';
@@ -18,5 +19,6 @@ router.route('/tweet', tweetRouter);
 router.route('/like', likeRouter);
 router.route('/comment', commentRouter);
 router.route('/feed', feedRouter);
+router.route('/bookmark', bookmarkRouter);
 
 export default router;
