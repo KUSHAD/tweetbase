@@ -9,6 +9,7 @@ import { errorFormat, getUploadthingFileKey } from '../lib/utils';
 import { getProfileSchema } from '../validators/profile';
 import { getTweetSchema, newTweetSchema } from '../validators/tweet';
 import { paginationSchema } from '../validators/utils';
+import { createNotification } from './notifications';
 
 const tweetWithUserSelect = {
   id: tweets.id,
@@ -245,6 +246,13 @@ export const retweet = zValidator('query', getTweetSchema, async (res, c) => {
     .set({ tweetCount: sql`${users.tweetCount} + 1` })
     .where(eq(users.id, authUser.userId));
 
+  await createNotification({
+    actorId: authUser.userId,
+    recipientId: ogTweet.userId,
+    type: 'RETWEET',
+    tweetId: tweetId,
+  });
+
   return c.json({
     message: 'Retweeted',
     data: { tweet: { ...retweet, originalTweet: ogTweet, originalTweetUser: ogTweet.user } },
@@ -301,6 +309,13 @@ export const quoteTweet = zValidator(
         userName: users.userName,
         tweetCount: users.tweetCount,
       });
+
+    await createNotification({
+      actorId: authUser.userId,
+      recipientId: ogTweet.id,
+      type: 'QUOTE',
+      tweetId: ogTweet.id,
+    });
 
     return c.json({
       message: 'Quoted tweet',

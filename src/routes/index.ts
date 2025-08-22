@@ -5,6 +5,7 @@ import commentRouter from './comment';
 import feedRouter from './feed';
 import likeRouter from './like';
 import networkRouter from './network';
+import notificationsRouter from './notifications';
 import profileRouter from './profile';
 import sessionRouter from './session';
 import tweetRouter from './tweet';
@@ -20,5 +21,6 @@ router.route('/like', likeRouter);
 router.route('/comment', commentRouter);
 router.route('/feed', feedRouter);
 router.route('/bookmark', bookmarkRouter);
+router.route('/notifications', notificationsRouter);
 
 export default router;

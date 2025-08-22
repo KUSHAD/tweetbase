@@ -7,6 +7,7 @@ import { follows, users } from '../db/schema';
 import { errorFormat } from '../lib/utils';
 import { followSchema } from '../validators/network';
 import { paginationSchema } from '../validators/utils';
+import { createNotification } from './notifications';
 
 export const followUser = zValidator('json', followSchema, async (result, c) => {
   if (!result.success) throw new HTTPException(400, errorFormat(result.error));
@@ -37,6 +38,12 @@ export const followUser = zValidator('json', followSchema, async (result, c) => 
       .set({ followerCount: sql`${users.followerCount} + 1` })
       .where(eq(users.id, targetUserId));
   }
+
+  await createNotification({
+    actorId: authUser.userId,
+    recipientId: targetUserId,
+    type: 'FOLLOW',
+  });
 
   return c.json({
     message: 'Followed successfully',

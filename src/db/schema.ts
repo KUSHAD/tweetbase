@@ -21,6 +21,14 @@ export const verificationTokenType = pgEnum('verification_token_type', [
 
 export const tweetType = pgEnum('tweet_type', ['TWEET', 'RETWEET', 'QUOTE']);
 
+export const notificationType = pgEnum('notification_type', [
+  'LIKE',
+  'COMMENT',
+  'RETWEET',
+  'QUOTE',
+  'FOLLOW',
+]);
+
 export const accounts = pgTable('accounts', {
   id: text('id')
     .$defaultFn(() => createId())
@@ -216,5 +224,37 @@ export const tweetBookmarks = pgTable(
     primaryKey({ columns: [table.userId, table.tweetId] }),
     index('tweet_bookmarks_user_idx').on(table.userId),
     index('tweet_bookmarks_tweet_idx').on(table.tweetId),
+  ],
+);
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    recipientId: text('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    type: notificationType('type').notNull(),
+    tweetId: text('tweet_id').references(() => tweets.id, {
+      onDelete: 'cascade',
+      onUpdate: 'cascade',
+    }),
+    commentId: text('comment_id').references(() => tweetComments.id, {
+      onDelete: 'cascade',
+      onUpdate: 'cascade',
+    }),
+    isRead: boolean('is_read').default(false).notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('notifications_recipient_idx').on(table.recipientId),
+    index('notifications_actor_idx').on(table.actorId),
+    index('notifications_type_idx').on(table.type),
+    index('notifications_tweet_idx').on(table.tweetId),
   ],
 );

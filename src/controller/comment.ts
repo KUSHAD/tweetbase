@@ -2,11 +2,12 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { tweetComments, users } from '../db/schema';
+import { tweetComments, tweets, users } from '../db/schema';
 import { errorFormat } from '../lib/utils';
 import { commentIdSchema, createCommentSchema } from '../validators/comment';
 import { getTweetSchema } from '../validators/tweet';
 import { paginationSchema } from '../validators/utils';
+import { createNotification } from './notifications';
 
 export const createComment = zValidator('json', createCommentSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
@@ -26,7 +27,22 @@ export const createComment = zValidator('json', createCommentSchema, async (res,
       content: tweetComments.content,
       tweetId: tweetComments.tweetId,
       userId: tweetComments.userId,
+      id: tweetComments.id,
     });
+
+  const [ogTweet] = await db
+    .select({ ownerId: tweets.userId })
+    .from(tweets)
+    .where(eq(tweets.id, tweetId))
+    .limit(1);
+
+  await createNotification({
+    actorId: authUser.userId,
+    recipientId: ogTweet.ownerId,
+    type: 'COMMENT',
+    tweetId: tweetId,
+    commentId: newComment.id,
+  });
 
   return c.json({
     message: 'Comment created successfully',

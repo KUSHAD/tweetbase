@@ -2,10 +2,11 @@ import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../db';
-import { follows, tweetLikes, users } from '../db/schema';
+import { follows, tweetLikes, tweets, users } from '../db/schema';
 import { errorFormat } from '../lib/utils';
 import { getTweetSchema } from '../validators/tweet';
 import { paginationSchema } from '../validators/utils';
+import { createNotification } from './notifications';
 
 export const likeTweet = zValidator('query', getTweetSchema, async (res, c) => {
   if (!res.success) throw new HTTPException(400, errorFormat(res.error));
@@ -25,10 +26,23 @@ export const likeTweet = zValidator('query', getTweetSchema, async (res, c) => {
   if (likeExists)
     throw new HTTPException(400, { message: 'Invalid Request', cause: 'Tweet already liked' });
 
+  const [ogTweet] = await db
+    .select({ ownerId: tweets.userId })
+    .from(tweets)
+    .where(eq(tweets.id, tweetId))
+    .limit(1);
+
   const [data] = await db
     .insert(tweetLikes)
     .values({ tweetId, userId: authUser.userId })
     .returning({ userId: tweetLikes.userId, tweetId: tweetLikes.tweetId });
+
+  await createNotification({
+    actorId: authUser.userId,
+    recipientId: ogTweet.ownerId,
+    type: 'LIKE',
+    tweetId: tweetId,
+  });
 
   return c.json({ message: 'Tweet liked succesfully', data });
 });
