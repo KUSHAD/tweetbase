@@ -1,11 +1,11 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, max, sql } from 'drizzle-orm';
 import { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod/v4';
 import { db } from '../db';
 import { notifications, users } from '../db/schema';
-import { errorFormat } from '../lib/utils';
+import { errorFormat, getNotificationAction } from '../lib/utils';
 import { createNotificationSchema, getNotificationSchema } from '../validators/notifications';
 
 export async function createNotification(payload: z.infer<typeof createNotificationSchema>) {
@@ -50,6 +50,11 @@ export const markAsRead = zValidator('query', getNotificationSchema, async (resu
 
 export const getUserNotifications = async (c: Context) => {
   const authUser = c.get('authUser');
+
+  if (!authUser) {
+    throw new HTTPException(401, { message: 'Unauthorized', cause: 'No user session' });
+  }
+
   const userId = authUser.userId;
 
   const rows = await db
@@ -57,7 +62,7 @@ export const getUserNotifications = async (c: Context) => {
       type: notifications.type,
       tweetId: notifications.tweetId,
       commentId: notifications.commentId,
-      latestAt: sql`MAX(${notifications.createdAt})`.as('latest_at'),
+      latestAt: max(notifications.createdAt).as('latestAt'),
       actors: sql`
         json_agg(
           json_build_object(
@@ -70,52 +75,40 @@ export const getUserNotifications = async (c: Context) => {
       `.as('actors'),
     })
     .from(notifications)
-    .innerJoin(users, sql`${users.id} = ${notifications.actorId}`)
-    .where(sql`${notifications.recipientId} = ${userId}`)
+    .innerJoin(users, eq(users.id, notifications.actorId))
+    .where(eq(notifications.recipientId, userId))
     .groupBy(notifications.type, notifications.tweetId, notifications.commentId)
-    .orderBy((t) => [desc(t.latestAt)])
+    .orderBy(desc(sql`latestAt`))
     .limit(20);
 
-  return rows.map((n: any) => {
-    const actors = n.actors.map((a: any) => a.displayName);
-    const action = getAction(n.type);
+  // Format into clean response
+  const data = rows.map((n: any) => {
+    const parsedActors = Array.isArray(n.actors) ? n.actors : JSON.parse(n.actors ?? '[]');
+
+    const actorNames = parsedActors.map((a: any) => a.displayName);
+    const action = getNotificationAction(n.type);
 
     let message: string;
-    if (actors.length === 1) {
-      message = `${actors[0]} ${action}`;
-    } else if (actors.length === 2) {
-      message = `${actors[0]} and ${actors[1]} ${action}`;
+    if (actorNames.length === 1) {
+      message = `${actorNames[0]} ${action}`;
+    } else if (actorNames.length === 2) {
+      message = `${actorNames[0]} and ${actorNames[1]} ${action}`;
     } else {
-      message = `${actors[0]}, ${actors[1]} and ${actors.length - 2} others ${action}`;
+      message = `${actorNames[0]}, ${actorNames[1]} and ${actorNames.length - 2} others ${action}`;
     }
 
-    return c.json({
-      message: 'Notifications Fetched Succesfuly',
-      data: {
-        type: n.type,
-        tweetId: n.tweet_id,
-        commentId: n.comment_id,
-        latestAt: n.latest_at,
-        actors: n.actors,
-        message,
-      },
-    });
+    return {
+      type: n.type,
+      tweetId: n.tweetId,
+      commentId: n.commentId,
+      latestAt: n.latestAt,
+      actors: parsedActors,
+      message,
+    };
   });
 
-  function getAction(type: string): string {
-    switch (type) {
-      case 'LIKE':
-        return 'liked your tweet';
-      case 'COMMENT':
-        return 'commented on your tweet';
-      case 'RETWEET':
-        return 'retweeted your tweet';
-      case 'QUOTE':
-        return 'quoted your tweet';
-      case 'FOLLOW':
-        return 'followed you';
-      default:
-        return '';
-    }
-  }
+  return c.json({
+    message: 'Notifications fetched successfully',
+    data,
+  });
 };

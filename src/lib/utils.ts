@@ -139,3 +139,20 @@ export async function verifyPasswordResetToken(token: string) {
 export function getUploadthingFileKey(url: string) {
   return url.split('/f/')[1]!;
 }
+
+export function getNotificationAction(type: string): string {
+  switch (type) {
+    case 'LIKE':
+      return 'liked your tweet';
+    case 'COMMENT':
+      return 'commented on your tweet';
+    case 'RETWEET':
+      return 'retweeted your tweet';
+    case 'QUOTE':
+      return 'quoted your tweet';
+    case 'FOLLOW':
+      return 'followed you';
+    default:
+      return 'did something';
+  }
+}
