@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import authRouter from './auth';
 import bookmarkRouter from './bookmark';
 import commentRouter from './comment';
+import docsRouter from './docs';
 import feedRouter from './feed';
 import likeRouter from './like';
 import networkRouter from './network';
@@ -21,6 +22,7 @@ router.route('/like', likeRouter);
 router.route('/comment', commentRouter);
 router.route('/feed', feedRouter);
 router.route('/bookmark', bookmarkRouter);
-router.route('/notifications', notificationsRouter);
+router.route('/notification', notificationsRouter);
+router.route('/docs', docsRouter);
 
 export default router;

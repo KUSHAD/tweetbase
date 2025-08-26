@@ -8,13 +8,12 @@ import {
 } from '../controller/profile';
 import { authMiddleware } from '../middleware/auth';
 
-const profileRouter = new Hono();
-
-profileRouter.patch('/basic-info', authMiddleware, updateBasicInfo);
-profileRouter.patch('/username', authMiddleware, updateUsername);
-profileRouter.get('/search', authMiddleware, searchProfiles);
-profileRouter.patch('/avatar', authMiddleware, updateAvatar);
-profileRouter.get('/', getProfile);
+const profileRouter = new Hono()
+  .patch('/basic-info', authMiddleware, updateBasicInfo)
+  .patch('/username', authMiddleware, updateUsername)
+  .get('/search', authMiddleware, searchProfiles)
+  .patch('/avatar', authMiddleware, updateAvatar)
+  .get('/', getProfile);
 
 export type AppType = typeof profileRouter;
 export default profileRouter;

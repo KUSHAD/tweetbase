@@ -2,13 +2,11 @@ import { Hono } from 'hono';
 import { createBookmark, getBookmarks, removeBookmark } from '../controller/bookmark';
 import { authMiddleware } from '../middleware/auth';
 
-const bookmarkRouter = new Hono();
-
-bookmarkRouter
-  .all('/', authMiddleware)
-  .post(createBookmark)
-  .delete(removeBookmark)
-  .get(getBookmarks);
+const bookmarkRouter = new Hono()
+  .all(authMiddleware)
+  .post('/', createBookmark)
+  .delete('/', removeBookmark)
+  .get('/', getBookmarks);
 
 export type AppType = typeof bookmarkRouter;
 export default bookmarkRouter;

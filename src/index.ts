@@ -47,6 +47,8 @@ app.get(
 // 🛣️ Mount all application routes
 app.route('/', router);
 
+app.get('/', (c) => c.redirect('/docs'));
+
 app.notFound((c) =>
   c.json(
     { error: 'Not Found', method: c.req.method, path: c.req.path, requestId: c.get('requestId') },

@@ -1,0 +1,2125 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Tweetbase",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    },
+    {
+      "url": "tweetbase.kushad-chakraborty.workers.dev"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Session"
+    },
+    {
+      "name": "Profile"
+    },
+    {
+      "name": "Network"
+    },
+    {
+      "name": "Tweets"
+    },
+    {
+      "name": "Likes"
+    },
+    {
+      "name": "Comments"
+    },
+    {
+      "name": "Feed"
+    },
+    {
+      "name": "Bookmarks"
+    },
+    {
+      "name": "Notifications"
+    }
+  ],
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "summary": "Auto-generated POST /signup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "userName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "confirmPassword": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "displayName",
+                  "userName",
+                  "email",
+                  "password",
+                  "confirmPassword"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Auto-generated POST /login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "identifier",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Auto-generated POST /logout",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/email-verification": {
+      "post": {
+        "summary": "Auto-generated POST /email-verification",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "summary": "Auto-generated POST /forgot-password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "identifier"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "summary": "Auto-generated POST /reset-password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "confirmPassword": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "password",
+                  "confirmPassword"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/session/me": {
+      "get": {
+        "summary": "Auto-generated GET /me",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "displayName": {
+                              "type": "string"
+                            },
+                            "userName": {
+                              "type": "string"
+                            },
+                            "avatarUrl": {
+                              "type": "string"
+                            },
+                            "bio": {
+                              "oneOf": [
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "website": {
+                              "oneOf": [
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "followerCount": {
+                              "type": "number"
+                            },
+                            "followingCount": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "displayName",
+                            "userName",
+                            "avatarUrl",
+                            "bio",
+                            "website",
+                            "followerCount",
+                            "followingCount"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "user"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Session"
+        ]
+      }
+    },
+    "/session/refresh": {
+      "post": {
+        "summary": "Auto-generated POST /refresh",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Session"
+        ]
+      }
+    },
+    "/session/active": {
+      "get": {
+        "summary": "Auto-generated GET /active",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sessions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "accountId": {
+                                "type": "string"
+                              },
+                              "userId": {
+                                "type": "string"
+                              },
+                              "refreshToken": {
+                                "type": "string"
+                              },
+                              "userAgent": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "ipAddress": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "city": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "country": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "location": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "x": {
+                                        "type": "number"
+                                      },
+                                      "y": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "x",
+                                      "y"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "expiresAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "accountId",
+                              "userId",
+                              "refreshToken",
+                              "userAgent",
+                              "ipAddress",
+                              "city",
+                              "country",
+                              "location",
+                              "createdAt",
+                              "expiresAt"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "sessions"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Session"
+        ]
+      }
+    },
+    "/session/revoke": {
+      "delete": {
+        "summary": "Auto-generated DELETE /revoke",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Session"
+        ]
+      }
+    },
+    "/profile/basic-info": {
+      "patch": {
+        "summary": "Auto-generated PATCH /basic-info",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "bio": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "website": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "displayName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/username": {
+      "patch": {
+        "summary": "Auto-generated PATCH /username",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/search": {
+      "get": {
+        "summary": "Auto-generated GET /search",
+        "parameters": [
+          {
+            "name": "searchString",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/avatar": {
+      "patch": {
+        "summary": "Auto-generated PATCH /avatar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "object",
+                    "properties": {}
+                  }
+                },
+                "required": [
+                  "avatar"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile": {
+      "get": {
+        "summary": "Auto-generated GET /",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/network/follow": {
+      "post": {
+        "summary": "Auto-generated POST /follow",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targetUserId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "targetUserId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ]
+      }
+    },
+    "/network/unfollow": {
+      "delete": {
+        "summary": "Auto-generated DELETE /unfollow",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targetUserId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "targetUserId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ]
+      }
+    },
+    "/network/followers": {
+      "get": {
+        "summary": "Auto-generated GET /followers",
+        "parameters": [
+          {
+            "name": "targetUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ]
+      }
+    },
+    "/network/following": {
+      "get": {
+        "summary": "Auto-generated GET /following",
+        "parameters": [
+          {
+            "name": "targetUserId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ]
+      }
+    },
+    "/network/suggested": {
+      "get": {
+        "summary": "Auto-generated GET /suggested",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "suggestions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "userName": {
+                                "type": "string"
+                              },
+                              "displayName": {
+                                "type": "string"
+                              },
+                              "avatarUrl": {
+                                "type": "string"
+                              },
+                              "bio": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "followerCount": {
+                                "type": "number"
+                              },
+                              "mutualFollowCount": {
+                                "type": "number"
+                              },
+                              "tweetCount": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "userName",
+                              "displayName",
+                              "avatarUrl",
+                              "bio",
+                              "followerCount",
+                              "mutualFollowCount",
+                              "tweetCount"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "suggestions"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Network"
+        ]
+      }
+    },
+    "/tweets": {
+      "post": {
+        "summary": "Auto-generated POST /",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "media": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tweets"
+        ]
+      },
+      "get": {
+        "summary": "Auto-generated GET /",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tweets"
+        ]
+      },
+      "patch": {
+        "summary": "Auto-generated PATCH /",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "media": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tweets"
+        ]
+      },
+      "delete": {
+        "summary": "Auto-generated DELETE /",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tweets"
+        ]
+      }
+    },
+    "/tweets/retweet": {
+      "post": {
+        "summary": "Auto-generated POST /retweet",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tweets"
+        ]
+      }
+    },
+    "/tweets/quote": {
+      "post": {
+        "summary": "Auto-generated POST /quote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tweets"
+        ]
+      }
+    },
+    "/tweets/user": {
+      "get": {
+        "summary": "Auto-generated GET /user",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tweets"
+        ]
+      }
+    },
+    "/like": {
+      "post": {
+        "summary": "Auto-generated POST /",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Likes"
+        ]
+      },
+      "get": {
+        "summary": "Auto-generated GET /",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Likes"
+        ]
+      },
+      "delete": {
+        "summary": "Auto-generated DELETE /",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Likes"
+        ]
+      }
+    },
+    "/comment": {
+      "post": {
+        "summary": "Auto-generated POST /",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "tweetId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "tweetId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      },
+      "patch": {
+        "summary": "Auto-generated PATCH /",
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "content",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      },
+      "delete": {
+        "summary": "Auto-generated DELETE /",
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      }
+    },
+    "/comment/tweet": {
+      "get": {
+        "summary": "Auto-generated GET /tweet",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      }
+    },
+    "/feed": {
+      "get": {
+        "summary": "Auto-generated GET /",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Feed"
+        ]
+      }
+    },
+    "/feed/explore": {
+      "get": {
+        "summary": "Auto-generated GET /explore",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Feed"
+        ]
+      }
+    },
+    "/bookmark": {
+      "post": {
+        "summary": "Auto-generated POST /",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bookmarks"
+        ]
+      },
+      "delete": {
+        "summary": "Auto-generated DELETE /",
+        "parameters": [
+          {
+            "name": "tweetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bookmarks"
+        ]
+      },
+      "get": {
+        "summary": "Auto-generated GET /",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bookmarks"
+        ]
+      }
+    },
+    "/notification": {
+      "all": {
+        "summary": "Auto-generated ALL /",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "patch": {
+        "summary": "Auto-generated PATCH /",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "get": {
+        "summary": "Auto-generated GET /",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {},
+                          "tweetId": {},
+                          "commentId": {},
+                          "latestAt": {},
+                          "actors": {},
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "tweetId",
+                          "commentId",
+                          "latestAt",
+                          "actors",
+                          "message"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Notifications"
+        ]
+      }
+    }
+  }
+}

@@ -10,14 +10,13 @@ import {
 import { authMiddleware } from '../middleware/auth';
 import { resetPasswordMiddleware } from '../middleware/reset-password';
 
-const authRouter = new Hono();
-
-authRouter.post('/signup', signup);
-authRouter.post('/login', login);
-authRouter.post('/logout', authMiddleware, logout);
-authRouter.post('/email-verification', authMiddleware, verifyEmail);
-authRouter.post('/forgot-password', sendPasswordResetEmail);
-authRouter.post('/reset-password', resetPasswordMiddleware, resetPassword);
+const authRouter = new Hono()
+  .post('/signup', signup)
+  .post('/login', login)
+  .post('/logout', authMiddleware, logout)
+  .post('/email-verification', authMiddleware, verifyEmail)
+  .post('/forgot-password', sendPasswordResetEmail)
+  .post('/reset-password', resetPasswordMiddleware, resetPassword);
 
 export type AppType = typeof authRouter;
 export default authRouter;
