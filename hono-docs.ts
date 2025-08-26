@@ -7,7 +7,7 @@ export default defineConfig({
     info: { title: 'Tweetbase', version: '1.0.0' },
     servers: [
       { url: 'http://localhost:3000' },
-      { url: 'tweetbase.kushad-chakraborty.workers.dev' },
+      { url: 'https://tweetbase.kushad-chakraborty.workers.dev' },
     ],
   },
   outputs: {
