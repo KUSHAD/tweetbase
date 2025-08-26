@@ -19,4 +19,5 @@ authRouter.post('/email-verification', authMiddleware, verifyEmail);
 authRouter.post('/forgot-password', sendPasswordResetEmail);
 authRouter.post('/reset-password', resetPasswordMiddleware, resetPassword);
 
+export type AppType = typeof authRouter;
 export default authRouter;

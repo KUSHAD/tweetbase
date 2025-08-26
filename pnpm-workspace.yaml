@@ -4,3 +4,5 @@ onlyBuiltDependencies:
   - msgpackr-extract
   - unrs-resolver
   - workerd
+patchedDependencies:
+  '@rcmade/hono-docs': patches/@rcmade__hono-docs.patch

@@ -16,4 +16,5 @@ profileRouter.get('/search', authMiddleware, searchProfiles);
 profileRouter.patch('/avatar', authMiddleware, updateAvatar);
 profileRouter.get('/', getProfile);
 
+export type AppType = typeof profileRouter;
 export default profileRouter;

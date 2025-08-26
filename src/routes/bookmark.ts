@@ -10,4 +10,5 @@ bookmarkRouter
   .delete(removeBookmark)
   .get(getBookmarks);
 
+export type AppType = typeof bookmarkRouter;
 export default bookmarkRouter;

@@ -1,0 +1,47 @@
+diff --git a/dist/cli/index.js b/dist/cli/index.js
+index ef43dd41ee504bf8c9c224956541f6bfe02d4c0b..736f297804137e485eac962f1d33788110c3e06d 100644
+--- a/dist/cli/index.js
++++ b/dist/cli/index.js
+@@ -13,6 +13,7 @@ import { Project } from "ts-morph";
+ import { resolve as resolve2 } from "path";
+ import { existsSync } from "fs";
+ import { tsImport } from "tsx/esm/api";
++import { pathToFileURL } from "url";
+ 
+ // src/utils/libDir.ts
+ import { dirname, resolve } from "path";
+@@ -34,25 +35,33 @@ function unwrapModule(module) {
+ }
+ 
+ // src/config/loadConfig.ts
++
+ async function loadConfig(configFile) {
+   const fullPath = resolve2(process.cwd(), configFile);
++
+   if (!existsSync(fullPath)) {
+     throw new Error(`[hono-docs] Config file not found: ${fullPath}`);
+   }
++
+   let configModule;
+   try {
+-    configModule = await tsImport(fullPath, import.meta.url);
++    // ✅ Convert Windows path to file:// URL before import
++    const fileUrl = pathToFileURL(fullPath).href;
++    configModule = await tsImport(fileUrl, import.meta.url);
+   } catch (err) {
+     throw new Error(
+       `[hono-docs] Failed to load config: ${err.message ?? String(err)}`
+     );
+   }
++
+   const config = unwrapModule(configModule);
++
+   if (!config || typeof config !== "object") {
+     throw new Error(
+       `[hono-docs] Invalid config file. Expected an object, got: ${typeof config}`
+     );
+   }
++
+   return config;
+ }
+ 

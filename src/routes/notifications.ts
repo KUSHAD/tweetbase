@@ -6,4 +6,5 @@ const notificationsRouter = new Hono();
 
 notificationsRouter.all('/', authMiddleware).patch(markAsRead).get(getUserNotifications);
 
+export type AppType = typeof notificationsRouter;
 export default notificationsRouter;

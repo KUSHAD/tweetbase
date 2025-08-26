@@ -6,4 +6,5 @@ const likeRouter = new Hono();
 
 likeRouter.all('/', authMiddleware).post(likeTweet).get(getLikes).delete(unlikeTweet);
 
+export type AppType = typeof likeRouter;
 export default likeRouter;

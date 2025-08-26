@@ -22,4 +22,5 @@ tweetRouter.post('/retweet', authMiddleware, retweet);
 tweetRouter.post('/quote', authMiddleware, quoteTweet);
 tweetRouter.get('/user', getUserTweets);
 
+export type AppType = typeof tweetRouter;
 export default tweetRouter;

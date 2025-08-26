@@ -16,4 +16,5 @@ networkRouter.get('/followers', authMiddleware, getFollowers);
 networkRouter.get('/following', authMiddleware, getFollowing);
 networkRouter.get('/suggested', authMiddleware, getSuggestedFollows);
 
+export type AppType = typeof networkRouter;
 export default networkRouter;

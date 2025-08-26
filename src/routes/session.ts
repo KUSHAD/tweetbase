@@ -9,4 +9,5 @@ sessionRouter.post('/refresh', rotateRefreshToken);
 sessionRouter.get('/active', authMiddleware, getActiveSessions);
 sessionRouter.delete('/revoke', authMiddleware, revokeSession);
 
+export type AppType = typeof sessionRouter;
 export default sessionRouter;

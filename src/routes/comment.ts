@@ -16,4 +16,5 @@ commentRouter
   .delete(deleteComment);
 commentRouter.get('/tweet', getCommentsByTweetId);
 
+export type AppType = typeof commentRouter;
 export default commentRouter;

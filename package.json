@@ -4,12 +4,12 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "prepare": "husky",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:seed": "tsx src/scripts/seed.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "docs": "npx @rcmade/hono-docs generate --config ./hono-docs.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
@@ -33,29 +33,20 @@
   },
   "devDependencies": {
     "@hono/eslint-config": "^2.0.2",
+    "@rcmade/hono-docs": "^1.0.30",
     "@types/node": "^24.0.4",
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.35.0",
     "drizzle-kit": "^0.31.2",
-    "eslint": "^9.29.0",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-drizzle": "^0.2.3",
     "eslint-plugin-prettier": "^5.5.0",
-    "husky": "^9.1.7",
     "prettier": "^3.6.1",
     "prettier-plugin-organize-imports": "^4.1.0",
     "pretty-quick": "^4.2.2",
     "tsx": "^4.20.3",
     "wrangler": "^4.31.0"
   },
-  "packageManager": "pnpm@10.10.0+sha512.d615db246fe70f25dcfea6d8d73dee782ce23e2245e3c4f6f888249fb568149318637dca73c2c5c8ef2a4ca0d5657fb9567188bfab47f566d1ee6ce987815c39",
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md}": [
-      "prettier --write"
-    ]
-  }
+  "packageManager": "pnpm@10.10.0+sha512.d615db246fe70f25dcfea6d8d73dee782ce23e2245e3c4f6f888249fb568149318637dca73c2c5c8ef2a4ca0d5657fb9567188bfab47f566d1ee6ce987815c39"
 }
