@@ -5,6 +5,7 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod/v4';
 import { db } from '../db';
 import { notifications, users } from '../db/schema';
+import { pusher } from '../lib/pusher';
 import { errorFormat, getNotificationAction } from '../lib/utils';
 import { createNotificationSchema, getNotificationSchema } from '../validators/notifications';
 
@@ -20,13 +21,27 @@ export async function createNotification(payload: z.infer<typeof createNotificat
     return;
   }
 
-  await db.insert(notifications).values({
-    recipientId: parse.data.recipientId,
-    actorId: parse.data.actorId,
-    type: parse.data.type,
-    tweetId: parse.data.tweetId ?? null,
-    commentId: parse.data.commentId ?? null,
+  const [inserted] = await db
+    .insert(notifications)
+    .values({
+      recipientId: parse.data.recipientId,
+      actorId: parse.data.actorId,
+      type: parse.data.type,
+      tweetId: parse.data.tweetId ?? null,
+      commentId: parse.data.commentId ?? null,
+    })
+    .returning();
+
+  await pusher.trigger(`private-user-${parse.data.recipientId}`, 'new-notification', {
+    id: inserted.id,
+    type: inserted.type,
+    actorId: inserted.actorId,
+    tweetId: inserted.tweetId,
+    commentId: inserted.commentId,
+    createdAt: inserted.createdAt,
   });
+
+  return inserted;
 }
 
 export const markAsRead = zValidator('query', getNotificationSchema, async (result, c) => {

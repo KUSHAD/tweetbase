@@ -8,6 +8,7 @@ import likeRouter from './like';
 import networkRouter from './network';
 import notificationsRouter from './notifications';
 import profileRouter from './profile';
+import pusherRouter from './pusher';
 import sessionRouter from './session';
 import tweetRouter from './tweet';
 
@@ -24,5 +25,6 @@ router.route('/feed', feedRouter);
 router.route('/bookmark', bookmarkRouter);
 router.route('/notification', notificationsRouter);
 router.route('/docs', docsRouter);
+router.route('/pusher', pusherRouter);
 
 export default router;

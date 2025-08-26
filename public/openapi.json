@@ -42,6 +42,9 @@
     },
     {
       "name": "Notifications"
+    },
+    {
+      "name": "Pusher"
     }
   ],
   "paths": {
@@ -2118,6 +2121,66 @@
         },
         "tags": [
           "Notifications"
+        ]
+      }
+    },
+    "/pusher/auth": {
+      "post": {
+        "summary": "Auto-generated POST /auth",
+        "responses": {
+          "401": {
+            "description": "Status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "auth": {
+                      "type": "string"
+                    },
+                    "channel_data": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "shared_secret": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "auth"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Pusher"
         ]
       }
     }

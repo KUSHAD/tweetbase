@@ -64,5 +64,10 @@ export default defineConfig({
       name: 'Notifications',
       appTypePath: './src/routes/notifications.ts',
     },
+    {
+      apiPrefix: '/pusher',
+      name: 'Pusher',
+      appTypePath: './src/routes/pusher.ts',
+    },
   ],
 });
