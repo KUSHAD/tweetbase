@@ -20,6 +20,9 @@
       "name": "Session"
     },
     {
+      "name": "Subscription"
+    },
+    {
       "name": "Profile"
     },
     {
@@ -45,6 +48,9 @@
     },
     {
       "name": "Pusher"
+    },
+    {
+      "name": "Webhook"
     }
   ],
   "paths": {
@@ -600,6 +606,222 @@
         },
         "tags": [
           "Session"
+        ]
+      }
+    },
+    "/subscription/checkout": {
+      "post": {
+        "summary": "Auto-generated POST /checkout",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sessionId": {
+                          "type": "string"
+                        },
+                        "session": {
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "sessionId",
+                        "session"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Subscription"
+        ]
+      }
+    },
+    "/subscription/success": {
+      "get": {
+        "summary": "Auto-generated GET /success",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "userId": {
+                              "type": "string"
+                            },
+                            "stripeCustomerId": {
+                              "type": "string"
+                            },
+                            "stripeSubscriptionId": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "active",
+                                "canceled",
+                                "incomplete",
+                                "incomplete_expired",
+                                "past_due",
+                                "paused",
+                                "trialing",
+                                "unpaid"
+                              ]
+                            },
+                            "currentPeriodStart": {
+                              "type": "string"
+                            },
+                            "currentPeriodEnd": {
+                              "type": "string"
+                            },
+                            "cancelAtPeriodEnd": {
+                              "oneOf": [
+                                {},
+                                {}
+                              ]
+                            },
+                            "updatedAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "userId",
+                            "stripeCustomerId",
+                            "stripeSubscriptionId",
+                            "status",
+                            "currentPeriodStart",
+                            "currentPeriodEnd",
+                            "cancelAtPeriodEnd",
+                            "updatedAt"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "status"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Subscription"
+        ]
+      }
+    },
+    "/subscription/cancel": {
+      "get": {
+        "summary": "Auto-generated GET /cancel",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Subscription"
+        ]
+      }
+    },
+    "/subscription/billing-portal": {
+      "post": {
+        "summary": "Auto-generated POST /billing-portal",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sessionId": {
+                          "type": "string"
+                        },
+                        "session": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sessionId",
+                        "session"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Subscription"
         ]
       }
     },
@@ -2128,24 +2350,6 @@
       "post": {
         "summary": "Auto-generated POST /auth",
         "responses": {
-          "401": {
-            "description": "Status 401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
           "default": {
             "description": "Default fallback response",
             "content": {
@@ -2181,6 +2385,63 @@
         },
         "tags": [
           "Pusher"
+        ]
+      }
+    },
+    "/webhook/stripe": {
+      "post": {
+        "summary": "Auto-generated POST /stripe",
+        "responses": {
+          "400": {
+            "description": "Status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "received": {}
+                      },
+                      "required": [
+                        "received"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": {}
+                  },
+                  "required": [
+                    "received"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Webhook"
         ]
       }
     }

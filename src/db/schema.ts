@@ -114,6 +114,33 @@ export const users = pgTable(
   ],
 );
 
+export const userSubscriptions = pgTable(
+  'user_subscriptions',
+  {
+    id: text('id')
+      .$defaultFn(() => createId())
+      .primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    stripeCustomerId: text('stripe_customer_id').notNull(),
+    stripeSubscriptionId: text('stripe_subscription_id').notNull(),
+    status: varchar('status', { length: 20 }).notNull(),
+    currentPeriodStart: timestamp('current_period_start', { mode: 'date' }).notNull(),
+    currentPeriodEnd: timestamp('current_period_end', { mode: 'date' }).notNull(),
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false).notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' })
+      .$onUpdate(() => new Date())
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('user_subscriptions_user_idx').on(table.userId),
+    index('user_subscriptions_stripe_sub_idx').on(table.stripeSubscriptionId),
+  ],
+);
+
 export const follows = pgTable(
   'follows',
   {

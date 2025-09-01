@@ -7,7 +7,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
 
-import { every } from 'hono/combine';
+import { except } from 'hono/combine';
 import { HTTPException } from 'hono/http-exception';
 import { limiter } from './lib/rate-limit';
 import router from './routes';
@@ -18,18 +18,14 @@ const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 app.use(
   '*',
-  every(
-    // 🌐 Enable CORS globally
+  except(
+    '/webhook/*',
     cors(),
-    // 🚫 Global rate limiter (Upstash Redis-backed)
     limiter,
-    // 🆔 Attach a request ID to every request
     requestId({
       generator: () => createId(),
     }),
-    // 🌍 Attach geo data to each request
     GeoMiddleware(),
-    // 📜 Log each request (includes request ID)
     logger(),
   ),
 );
@@ -38,7 +34,7 @@ app.use(
 app.get(
   '*',
   cache({
-    cacheName: 'service',
+    cacheName: 'tweetbase',
     cacheControl: 'max-age=10',
     cacheableStatusCodes: [200, 404, 412],
   }),

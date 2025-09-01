@@ -1,8 +1,13 @@
 import { generateTOTP, verifyTOTPWithGracePeriod } from '@oslojs/otp';
+import { eq } from 'drizzle-orm';
 import { SignJWT, jwtVerify } from 'jose';
 import { EmailParams, Recipient, Sender } from 'mailersend';
+import { Stripe } from 'stripe';
 import z from 'zod/v4';
+import { db } from '../db';
+import { userSubscriptions } from '../db/schema';
 import { mailerSend } from './email';
+import { stripe } from './stripe';
 
 export function errorFormat(error: unknown) {
   if (error instanceof z.ZodError) {
@@ -155,4 +160,122 @@ export function getNotificationAction(type: string): string {
     default:
       return 'did something';
   }
+}
+
+export async function syncStripeDataToDB(customerId: string) {
+  const [existing] = await db
+    .select({
+      userId: userSubscriptions.userId,
+    })
+    .from(userSubscriptions)
+    .where(eq(userSubscriptions.stripeCustomerId, customerId))
+    .limit(1);
+
+  const userId = existing?.userId ?? null;
+
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    limit: 1,
+    status: 'all',
+    expand: ['data.default_payment_method'],
+  });
+
+  if (subscriptions.data.length === 0) {
+    // No subscription found → mark as none
+    const subData = {
+      userId: userId, // if you always want a value
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: 'none',
+      status: 'none',
+      currentPeriodStart: new Date(0),
+      currentPeriodEnd: new Date(0),
+      cancelAtPeriodEnd: false,
+      updatedAt: new Date(),
+    };
+
+    await db
+      .insert(userSubscriptions)
+      .values(subData)
+      .onConflictDoUpdate({
+        target: userSubscriptions.stripeCustomerId,
+        set: {
+          stripeSubscriptionId: 'none',
+          status: 'none',
+          currentPeriodStart: new Date(0),
+          currentPeriodEnd: new Date(0),
+          cancelAtPeriodEnd: false,
+          updatedAt: new Date(),
+        },
+      });
+
+    return { status: 'none' };
+  }
+
+  const subscription = subscriptions.data[0];
+
+  const subData = {
+    userId: userId,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscription.id,
+    status: subscription.status,
+    currentPeriodStart: new Date(subscription.items.data[0].current_period_start * 1000),
+    currentPeriodEnd: new Date(subscription.items.data[0].current_period_end * 1000),
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    updatedAt: new Date(),
+  };
+
+  await db
+    .insert(userSubscriptions)
+    .values(subData)
+    .onConflictDoUpdate({
+      target: userSubscriptions.stripeCustomerId,
+      set: {
+        stripeSubscriptionId: subscription.id,
+        status: subscription.status,
+        currentPeriodStart: new Date(subscription.items.data[0].current_period_start * 1000),
+        currentPeriodEnd: new Date(subscription.items.data[0].current_period_end * 1000),
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        updatedAt: new Date(),
+      },
+    });
+
+  return subData;
+}
+
+export const stripeAllowedEvents: Stripe.Event.Type[] = [
+  'checkout.session.completed',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'customer.subscription.paused',
+  'customer.subscription.resumed',
+  'customer.subscription.pending_update_applied',
+  'customer.subscription.pending_update_expired',
+  'customer.subscription.trial_will_end',
+  'invoice.paid',
+  'invoice.payment_failed',
+  'invoice.payment_action_required',
+  'invoice.upcoming',
+  'invoice.marked_uncollectible',
+  'invoice.payment_succeeded',
+  'payment_intent.succeeded',
+  'payment_intent.payment_failed',
+  'payment_intent.canceled',
+];
+
+export async function processStripeEvent(event: Stripe.Event) {
+  // Skip processing if the event isn't one I'm tracking (list of all events below)
+  if (!stripeAllowedEvents.includes(event.type)) return;
+
+  // All the events I track have a customerId
+  const { customer: customerId } = event?.data?.object as {
+    customer: string; // Sadly TypeScript does not know this
+  };
+
+  // This helps make it typesafe and also lets me know if my assumption is wrong
+  if (typeof customerId !== 'string') {
+    throw new Error(`[STRIPE HOOK][CANCER] ID isn't string.\nEvent type: ${event.type}`);
+  }
+
+  return await syncStripeDataToDB(customerId);
 }

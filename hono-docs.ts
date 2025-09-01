@@ -25,6 +25,11 @@ export default defineConfig({
       appTypePath: './src/routes/session.ts',
     },
     {
+      apiPrefix: '/subscription',
+      name: 'Subscription',
+      appTypePath: './src/routes/subscription.ts',
+    },
+    {
       apiPrefix: '/profile',
       name: 'Profile',
       appTypePath: './src/routes/profile.ts',
@@ -68,6 +73,11 @@ export default defineConfig({
       apiPrefix: '/pusher',
       name: 'Pusher',
       appTypePath: './src/routes/pusher.ts',
+    },
+    {
+      apiPrefix: '/webhook',
+      name: 'Webhook',
+      appTypePath: './src/routes/webhook.ts',
     },
   ],
 });
