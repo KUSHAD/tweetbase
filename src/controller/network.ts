@@ -39,11 +39,15 @@ export const followUser = zValidator('json', followSchema, async (result, c) => 
       .where(eq(users.id, targetUserId));
   }
 
-  await createNotification({
-    actorId: authUser.userId,
-    recipientId: targetUserId,
-    type: 'FOLLOW',
-  });
+  c.executionCtx.waitUntil(
+    (async () => {
+      await createNotification({
+        actorId: authUser.userId,
+        recipientId: targetUserId,
+        type: 'FOLLOW',
+      });
+    })(),
+  );
 
   return c.json({
     message: 'Followed successfully',

@@ -246,12 +246,16 @@ export const retweet = zValidator('query', getTweetSchema, async (res, c) => {
     .set({ tweetCount: sql`${users.tweetCount} + 1` })
     .where(eq(users.id, authUser.userId));
 
-  await createNotification({
-    actorId: authUser.userId,
-    recipientId: ogTweet.userId,
-    type: 'RETWEET',
-    tweetId: tweetId,
-  });
+  c.executionCtx.waitUntil(
+    (async () => {
+      await createNotification({
+        actorId: authUser.userId,
+        recipientId: ogTweet.userId,
+        type: 'RETWEET',
+        tweetId: tweetId,
+      });
+    })(),
+  );
 
   return c.json({
     message: 'Retweeted',
@@ -310,12 +314,15 @@ export const quoteTweet = zValidator(
         tweetCount: users.tweetCount,
       });
 
-    await createNotification({
-      actorId: authUser.userId,
-      recipientId: ogTweet.id,
-      type: 'QUOTE',
-      tweetId: ogTweet.id,
-    });
+    c.executionCtx.waitUntil(
+      (async () => {
+        await createNotification({
+          actorId: authUser.userId,
+          recipientId: ogTweet.id,
+          type: 'QUOTE',
+        });
+      })(),
+    );
 
     return c.json({
       message: 'Quoted tweet',

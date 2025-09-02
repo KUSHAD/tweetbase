@@ -87,7 +87,11 @@ export const signup = zValidator('json', signupSchema, async (res, c) => {
     tokenType: 'EMAIL_VERIFICATION',
   });
 
-  await sendVerificationEmail({ email, name: displayName }, otp);
+  c.executionCtx.waitUntil(
+    (async () => {
+      await sendVerificationEmail({ email, name: displayName }, otp);
+    })(),
+  );
 
   return c.json({
     message: 'Signup complete, verify email.',
@@ -226,7 +230,12 @@ export const sendPasswordResetEmail = zValidator('json', forgotPasswordSchema, a
   });
 
   const resetToken = await generateForgotPasswordToken({ userId: user.id, accountId: acc.id });
-  await sendPasswordResetEmailUtils({ email: acc.email, name: user.displayName }, otp);
+
+  c.executionCtx.waitUntil(
+    (async () => {
+      await sendPasswordResetEmailUtils({ email: acc.email, name: user.displayName }, otp);
+    })(),
+  );
 
   return c.json({ message: 'Check your inbox to reset password', data: { resetToken } });
 });

@@ -8,11 +8,10 @@ import {
 import { authMiddleware } from '../middleware/auth';
 
 export const subscriptionRouter = new Hono()
-  .all(authMiddleware)
-  .post('/checkout', generateCheckoutSession)
+  .post('/checkout', authMiddleware, generateCheckoutSession)
   .get('/success', successPayment)
   .get('/cancel', cancelPayment)
-  .post('/billing-portal', requestBillingPortal);
+  .post('/billing-portal', authMiddleware, requestBillingPortal);
 
 export type AppType = typeof subscriptionRouter;
 export default subscriptionRouter;

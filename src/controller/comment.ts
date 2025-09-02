@@ -36,13 +36,17 @@ export const createComment = zValidator('json', createCommentSchema, async (res,
     .where(eq(tweets.id, tweetId))
     .limit(1);
 
-  await createNotification({
-    actorId: authUser.userId,
-    recipientId: ogTweet.ownerId,
-    type: 'COMMENT',
-    tweetId: tweetId,
-    commentId: newComment.id,
-  });
+  c.executionCtx.waitUntil(
+    (async () => {
+      await createNotification({
+        actorId: authUser.userId,
+        recipientId: ogTweet.ownerId,
+        type: 'COMMENT',
+        tweetId: tweetId,
+        commentId: newComment.id,
+      });
+    })(),
+  );
 
   return c.json({
     message: 'Comment created successfully',

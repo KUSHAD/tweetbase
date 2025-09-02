@@ -37,12 +37,16 @@ export const likeTweet = zValidator('query', getTweetSchema, async (res, c) => {
     .values({ tweetId, userId: authUser.userId })
     .returning({ userId: tweetLikes.userId, tweetId: tweetLikes.tweetId });
 
-  await createNotification({
-    actorId: authUser.userId,
-    recipientId: ogTweet.ownerId,
-    type: 'LIKE',
-    tweetId: tweetId,
-  });
+  c.executionCtx.waitUntil(
+    (async () => {
+      await createNotification({
+        actorId: authUser.userId,
+        recipientId: ogTweet.ownerId,
+        type: 'LIKE',
+        tweetId: tweetId,
+      });
+    })(),
+  );
 
   return c.json({ message: 'Tweet liked succesfully', data });
 });
