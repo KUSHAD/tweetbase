@@ -6,11 +6,12 @@ import {
   updateComment,
 } from '../controller/comment';
 import { authMiddleware } from '../middleware/auth';
+import { subscriptionMiddleware } from '../middleware/subscription';
 
 const commentRouter = new Hono()
   .all(authMiddleware)
   .post('/', createComment)
-  .patch('/', updateComment)
+  .patch('/', subscriptionMiddleware, updateComment)
   .delete('/', deleteComment)
   .get('/tweet', getCommentsByTweetId);
 

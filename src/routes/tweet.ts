@@ -9,14 +9,15 @@ import {
   retweet,
 } from '../controller/tweet';
 import { authMiddleware } from '../middleware/auth';
+import { subscriptionMiddleware } from '../middleware/subscription';
 
 const tweetRouter = new Hono()
   .post('/', authMiddleware, newTweet)
   .get('/', getTweet)
-  .patch('/', authMiddleware, editTweet)
+  .patch('/', authMiddleware, subscriptionMiddleware, editTweet)
   .delete('/', authMiddleware, deleteTweet)
-  .post('/retweet', authMiddleware, retweet)
-  .post('/quote', authMiddleware, quoteTweet)
+  .post('/retweet', authMiddleware, subscriptionMiddleware, retweet)
+  .post('/quote', authMiddleware, subscriptionMiddleware, quoteTweet)
   .get('/user', getUserTweets);
 
 export type AppType = typeof tweetRouter;
