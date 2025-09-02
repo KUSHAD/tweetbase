@@ -148,6 +148,13 @@
       "when": 1755839127502,
       "tag": "0020_chilly_skreet",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1756834019501,
+      "tag": "0021_goofy_zuras",
+      "breakpoints": true
     }
   ]
 }

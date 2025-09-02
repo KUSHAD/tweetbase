@@ -1,5 +1,5 @@
 import { createId } from '@paralleldrive/cuid2';
-import { sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   AnyPgColumn,
   boolean,
@@ -285,3 +285,145 @@ export const notifications = pgTable(
     index('notifications_tweet_idx').on(table.tweetId),
   ],
 );
+
+export const accountRelations = relations(accounts, ({ one, many }) => ({
+  user: one(users, {
+    fields: [accounts.id],
+    references: [users.accountId],
+  }),
+  sessions: many(sessions),
+  verificationTokens: many(verificationTokens),
+}));
+
+export const userRelations = relations(users, ({ one, many }) => ({
+  account: one(accounts, {
+    fields: [users.accountId],
+    references: [accounts.id],
+  }),
+  subscription: one(userSubscriptions, {
+    fields: [users.id],
+    references: [userSubscriptions.userId],
+  }),
+  verificationTokens: many(verificationTokens),
+  sessions: many(sessions),
+  tweets: many(tweets),
+  comments: many(tweetComments),
+  likes: many(tweetLikes),
+  bookmarks: many(tweetBookmarks),
+  followers: many(follows, { relationName: 'followers' }),
+  following: many(follows, { relationName: 'following' }),
+  actorNotifications: many(notifications, { relationName: 'actor' }),
+  recipientNotifications: many(notifications, { relationName: 'recipient' }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+  account: one(accounts, {
+    fields: [sessions.accountId],
+    references: [accounts.id],
+  }),
+}));
+
+export const verificationTokensRelations = relations(verificationTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [verificationTokens.userId],
+    references: [users.id],
+  }),
+  account: one(accounts, {
+    fields: [verificationTokens.accountId],
+    references: [accounts.id],
+  }),
+}));
+
+export const userSubscriptionsRelations = relations(userSubscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [userSubscriptions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const followsRelations = relations(follows, ({ one }) => ({
+  follower: one(users, {
+    fields: [follows.followerId],
+    references: [users.id],
+    relationName: 'followers',
+  }),
+  following: one(users, {
+    fields: [follows.followingId],
+    references: [users.id],
+    relationName: 'following',
+  }),
+}));
+
+export const tweetRelations = relations(tweets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [tweets.userId],
+    references: [users.id],
+  }),
+  originalTweet: one(tweets, {
+    fields: [tweets.originalTweetId],
+    references: [tweets.id],
+  }),
+  comments: many(tweetComments),
+  likes: many(tweetLikes),
+  bookmarks: many(tweetBookmarks),
+  notifications: many(notifications),
+}));
+
+export const tweetCommentsRelations = relations(tweetComments, ({ one, many }) => ({
+  user: one(users, {
+    fields: [tweetComments.userId],
+    references: [users.id],
+  }),
+  tweet: one(tweets, {
+    fields: [tweetComments.tweetId],
+    references: [tweets.id],
+  }),
+  notifications: many(notifications),
+}));
+
+export const tweetLikesRelations = relations(tweetLikes, ({ one }) => ({
+  user: one(users, {
+    fields: [tweetLikes.userId],
+    references: [users.id],
+  }),
+  tweet: one(tweets, {
+    fields: [tweetLikes.tweetId],
+    references: [tweets.id],
+  }),
+}));
+
+export const tweetBookmarksRelations = relations(tweetBookmarks, ({ one }) => ({
+  user: one(users, {
+    fields: [tweetBookmarks.userId],
+    references: [users.id],
+  }),
+  tweet: one(tweets, {
+    fields: [tweetBookmarks.tweetId],
+    references: [tweets.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  recipient: one(users, {
+    fields: [notifications.recipientId],
+    references: [users.id],
+    relationName: 'recipient',
+  }),
+  actor: one(users, {
+    fields: [notifications.actorId],
+    references: [users.id],
+    relationName: 'actor',
+  }),
+  tweet: one(tweets, {
+    fields: [notifications.tweetId],
+    references: [tweets.id],
+  }),
+  comment: one(tweetComments, {
+    fields: [notifications.commentId],
+    references: [tweetComments.id],
+  }),
+}));

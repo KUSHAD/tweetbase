@@ -9,6 +9,7 @@
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
+    "db:dbml": "node --experimental-specifier-resolution=node --import tsx src/scripts/dbml.ts",
     "docs": "npx @rcmade/hono-docs generate --config ./hono-docs.ts"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "bcryptjs": "^3.0.2",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
+    "drizzle-dbml-generator": "^0.10.0",
     "drizzle-orm": "^0.44.2",
     "hono": "^4.8.3",
     "hono-geo-middleware": "^0.1.2",
