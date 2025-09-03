@@ -40,7 +40,7 @@ export default defineConfig({
       appTypePath: './src/routes/network.ts',
     },
     {
-      apiPrefix: '/tweets',
+      apiPrefix: '/tweet',
       name: 'Tweets',
       appTypePath: './src/routes/tweet.ts',
     },

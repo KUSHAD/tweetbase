@@ -80,7 +80,13 @@
                     "type": "string"
                   }
                 },
-                "required": ["displayName", "userName", "email", "password", "confirmPassword"]
+                "required": [
+                  "displayName",
+                  "userName",
+                  "email",
+                  "password",
+                  "confirmPassword"
+                ]
               }
             }
           }
@@ -91,13 +97,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/login": {
@@ -117,7 +128,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["identifier", "password"]
+                "required": [
+                  "identifier",
+                  "password"
+                ]
               }
             }
           }
@@ -128,13 +142,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/logout": {
@@ -151,7 +170,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["refreshToken"]
+                "required": [
+                  "refreshToken"
+                ]
               }
             }
           }
@@ -162,13 +183,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/email-verification": {
@@ -185,7 +211,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["token"]
+                "required": [
+                  "token"
+                ]
               }
             }
           }
@@ -196,13 +224,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/forgot-password": {
@@ -219,7 +252,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["identifier"]
+                "required": [
+                  "identifier"
+                ]
               }
             }
           }
@@ -230,13 +265,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/reset-password": {
@@ -259,7 +299,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["token", "password", "confirmPassword"]
+                "required": [
+                  "token",
+                  "password",
+                  "confirmPassword"
+                ]
               }
             }
           }
@@ -270,13 +314,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/session/me": {
@@ -344,16 +393,23 @@
                           ]
                         }
                       },
-                      "required": ["user"]
+                      "required": [
+                        "user"
+                      ]
                     }
                   },
-                  "required": ["message", "data"]
+                  "required": [
+                    "message",
+                    "data"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Session"]
+        "tags": [
+          "Session"
+        ]
       }
     },
     "/session/refresh": {
@@ -370,7 +426,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["refreshToken"]
+                "required": [
+                  "refreshToken"
+                ]
               }
             }
           }
@@ -381,13 +439,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Session"]
+        "tags": [
+          "Session"
+        ]
       }
     },
     "/session/active": {
@@ -464,7 +527,10 @@
                                         "type": "number"
                                       }
                                     },
-                                    "required": ["x", "y"]
+                                    "required": [
+                                      "x",
+                                      "y"
+                                    ]
                                   }
                                 ]
                               },
@@ -491,16 +557,23 @@
                           }
                         }
                       },
-                      "required": ["sessions"]
+                      "required": [
+                        "sessions"
+                      ]
                     }
                   },
-                  "required": ["message", "data"]
+                  "required": [
+                    "message",
+                    "data"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Session"]
+        "tags": [
+          "Session"
+        ]
       }
     },
     "/session/revoke": {
@@ -522,13 +595,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Session"]
+        "tags": [
+          "Session"
+        ]
       }
     },
     "/subscription/checkout": {
@@ -559,16 +637,24 @@
                           ]
                         }
                       },
-                      "required": ["sessionId", "session"]
+                      "required": [
+                        "sessionId",
+                        "session"
+                      ]
                     }
                   },
-                  "required": ["message", "data"]
+                  "required": [
+                    "message",
+                    "data"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Subscription"]
+        "tags": [
+          "Subscription"
+        ]
       }
     },
     "/subscription/success": {
@@ -619,7 +705,10 @@
                               "type": "string"
                             },
                             "cancelAtPeriodEnd": {
-                              "oneOf": [{}, {}]
+                              "oneOf": [
+                                {},
+                                {}
+                              ]
                             },
                             "updatedAt": {
                               "type": "string"
@@ -643,18 +732,25 @@
                               "type": "string"
                             }
                           },
-                          "required": ["status"]
+                          "required": [
+                            "status"
+                          ]
                         }
                       ]
                     }
                   },
-                  "required": ["message", "data"]
+                  "required": [
+                    "message",
+                    "data"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Subscription"]
+        "tags": [
+          "Subscription"
+        ]
       }
     },
     "/subscription/cancel": {
@@ -672,13 +768,17 @@
                       "type": "string"
                     }
                   },
-                  "required": ["message"]
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Subscription"]
+        "tags": [
+          "Subscription"
+        ]
       }
     },
     "/subscription/billing-portal": {
@@ -705,16 +805,24 @@
                           "type": "string"
                         }
                       },
-                      "required": ["sessionId", "session"]
+                      "required": [
+                        "sessionId",
+                        "session"
+                      ]
                     }
                   },
-                  "required": ["message", "data"]
+                  "required": [
+                    "message",
+                    "data"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Subscription"]
+        "tags": [
+          "Subscription"
+        ]
       }
     },
     "/profile/basic-info": {
@@ -745,7 +853,9 @@
                     ]
                   }
                 },
-                "required": ["displayName"]
+                "required": [
+                  "displayName"
+                ]
               }
             }
           }
@@ -756,13 +866,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Profile"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/profile/username": {
@@ -779,7 +894,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["userName"]
+                "required": [
+                  "userName"
+                ]
               }
             }
           }
@@ -790,13 +907,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Profile"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/profile/search": {
@@ -818,13 +940,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Profile"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/profile/avatar": {
@@ -842,7 +969,9 @@
                     "properties": {}
                   }
                 },
-                "required": ["avatar"]
+                "required": [
+                  "avatar"
+                ]
               }
             }
           }
@@ -853,13 +982,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Profile"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/profile": {
@@ -881,13 +1015,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Profile"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/network/follow": {
@@ -904,7 +1043,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["targetUserId"]
+                "required": [
+                  "targetUserId"
+                ]
               }
             }
           }
@@ -915,13 +1056,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Network"]
+        "tags": [
+          "Network"
+        ]
       }
     },
     "/network/unfollow": {
@@ -938,7 +1084,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["targetUserId"]
+                "required": [
+                  "targetUserId"
+                ]
               }
             }
           }
@@ -949,13 +1097,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Network"]
+        "tags": [
+          "Network"
+        ]
       }
     },
     "/network/followers": {
@@ -1023,13 +1176,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Network"]
+        "tags": [
+          "Network"
+        ]
       }
     },
     "/network/following": {
@@ -1097,13 +1255,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Network"]
+        "tags": [
+          "Network"
+        ]
       }
     },
     "/network/suggested": {
@@ -1170,19 +1333,26 @@
                           }
                         }
                       },
-                      "required": ["suggestions"]
+                      "required": [
+                        "suggestions"
+                      ]
                     }
                   },
-                  "required": ["message", "data"]
+                  "required": [
+                    "message",
+                    "data"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Network"]
+        "tags": [
+          "Network"
+        ]
       }
     },
-    "/tweets": {
+    "/tweet": {
       "post": {
         "summary": "Auto-generated POST /",
         "requestBody": {
@@ -1204,7 +1374,9 @@
                     ]
                   }
                 },
-                "required": ["content"]
+                "required": [
+                  "content"
+                ]
               }
             }
           }
@@ -1215,13 +1387,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Tweets"]
+        "tags": [
+          "Tweets"
+        ]
       },
       "get": {
         "summary": "Auto-generated GET /",
@@ -1241,13 +1418,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Tweets"]
+        "tags": [
+          "Tweets"
+        ]
       },
       "patch": {
         "summary": "Auto-generated PATCH /",
@@ -1270,7 +1452,9 @@
                     ]
                   }
                 },
-                "required": ["content"]
+                "required": [
+                  "content"
+                ]
               }
             }
           }
@@ -1281,13 +1465,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Tweets"]
+        "tags": [
+          "Tweets"
+        ]
       },
       "delete": {
         "summary": "Auto-generated DELETE /",
@@ -1307,16 +1496,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Tweets"]
+        "tags": [
+          "Tweets"
+        ]
       }
     },
-    "/tweets/retweet": {
+    "/tweet/retweet": {
       "post": {
         "summary": "Auto-generated POST /retweet",
         "parameters": [
@@ -1335,16 +1529,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Tweets"]
+        "tags": [
+          "Tweets"
+        ]
       }
     },
-    "/tweets/quote": {
+    "/tweet/quote": {
       "post": {
         "summary": "Auto-generated POST /quote",
         "requestBody": {
@@ -1361,16 +1560,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Tweets"]
+        "tags": [
+          "Tweets"
+        ]
       }
     },
-    "/tweets/user": {
+    "/tweet/user": {
       "get": {
         "summary": "Auto-generated GET /user",
         "parameters": [
@@ -1435,13 +1639,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Tweets"]
+        "tags": [
+          "Tweets"
+        ]
       }
     },
     "/like": {
@@ -1463,13 +1672,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Likes"]
+        "tags": [
+          "Likes"
+        ]
       },
       "get": {
         "summary": "Auto-generated GET /",
@@ -1535,13 +1749,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Likes"]
+        "tags": [
+          "Likes"
+        ]
       },
       "delete": {
         "summary": "Auto-generated DELETE /",
@@ -1561,13 +1780,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Likes"]
+        "tags": [
+          "Likes"
+        ]
       }
     },
     "/comment": {
@@ -1587,7 +1811,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["content", "tweetId"]
+                "required": [
+                  "content",
+                  "tweetId"
+                ]
               }
             }
           }
@@ -1598,13 +1825,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Comments"]
+        "tags": [
+          "Comments"
+        ]
       },
       "patch": {
         "summary": "Auto-generated PATCH /",
@@ -1640,13 +1872,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Comments"]
+        "tags": [
+          "Comments"
+        ]
       },
       "delete": {
         "summary": "Auto-generated DELETE /",
@@ -1666,13 +1903,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Comments"]
+        "tags": [
+          "Comments"
+        ]
       }
     },
     "/comment/tweet": {
@@ -1740,13 +1982,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Comments"]
+        "tags": [
+          "Comments"
+        ]
       }
     },
     "/feed": {
@@ -1796,13 +2043,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Feed"]
+        "tags": [
+          "Feed"
+        ]
       }
     },
     "/feed/explore": {
@@ -1852,13 +2104,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Feed"]
+        "tags": [
+          "Feed"
+        ]
       }
     },
     "/bookmark": {
@@ -1880,13 +2137,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Bookmarks"]
+        "tags": [
+          "Bookmarks"
+        ]
       },
       "delete": {
         "summary": "Auto-generated DELETE /",
@@ -1906,13 +2168,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Bookmarks"]
+        "tags": [
+          "Bookmarks"
+        ]
       },
       "get": {
         "summary": "Auto-generated GET /",
@@ -1960,13 +2227,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Bookmarks"]
+        "tags": [
+          "Bookmarks"
+        ]
       }
     },
     "/notification": {
@@ -1978,13 +2250,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Notifications"]
+        "tags": [
+          "Notifications"
+        ]
       },
       "patch": {
         "summary": "Auto-generated PATCH /",
@@ -2004,13 +2281,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [{}, {}]
+                  "oneOf": [
+                    {},
+                    {}
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Notifications"]
+        "tags": [
+          "Notifications"
+        ]
       },
       "get": {
         "summary": "Auto-generated GET /",
@@ -2050,13 +2332,18 @@
                       }
                     }
                   },
-                  "required": ["message", "data"]
+                  "required": [
+                    "message",
+                    "data"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Notifications"]
+        "tags": [
+          "Notifications"
+        ]
       }
     },
     "/pusher/auth": {
@@ -2088,13 +2375,17 @@
                       ]
                     }
                   },
-                  "required": ["auth"]
+                  "required": [
+                    "auth"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Pusher"]
+        "tags": [
+          "Pusher"
+        ]
       }
     },
     "/webhook/stripe": {
@@ -2114,14 +2405,18 @@
                           "type": "string"
                         }
                       },
-                      "required": ["message"]
+                      "required": [
+                        "message"
+                      ]
                     },
                     {
                       "type": "object",
                       "properties": {
                         "received": {}
                       },
-                      "required": ["received"]
+                      "required": [
+                        "received"
+                      ]
                     }
                   ]
                 }
@@ -2137,13 +2432,17 @@
                   "properties": {
                     "received": {}
                   },
-                  "required": ["received"]
+                  "required": [
+                    "received"
+                  ]
                 }
               }
             }
           }
         },
-        "tags": ["Webhook"]
+        "tags": [
+          "Webhook"
+        ]
       }
     }
   }
