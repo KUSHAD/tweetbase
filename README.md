@@ -1,21 +1,25 @@
-```txt
-npm install
-npm run dev
-```
+# 🐦 Tweetbase
 
-```txt
-npm run deploy
-```
+A **Twitter-style backend** built with Hono + Drizzle + Postgres + Cloudflare Workers.
 
-[For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):
+🔗 **Live Demo / API Docs** → [tweetbase.kushad-chakraborty.workers.dev/docs](https://tweetbase.kushad-chakraborty.workers.dev/docs)
 
-```txt
-npm run cf-typegen
-```
+---
 
-Pass the `CloudflareBindings` as generics when instantiation `Hono`:
+## ✨ Features
 
-```ts
-// src/index.ts
-const app = new Hono<{ Bindings: CloudflareBindings }>()
-```
+### 🆓 Free Features
+
+* Secure authentication & session management
+* Tweets with text + media
+* Comments, likes & bookmarks
+* Follow/unfollow & suggested follows
+* Timeline & Explore feeds
+* Notifications (real-time with Pusher)
+
+### 💎 Pro Features
+
+* Edit tweets & comments
+* Retweets & quote tweets
+* Advanced suggested follows
+* Stripe-powered subscriptions
