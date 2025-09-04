@@ -13,7 +13,8 @@ A **Twitter-style backend** built with Hono + Drizzle + Postgres + Cloudflare Wo
 * Secure authentication & session management
 * Tweets with text + media
 * Comments, likes & bookmarks
-* Follow/unfollow & suggested follows
+* Search users by name and username (full text search)
+* Follow/unfollow
 * Timeline & Explore feeds
 * Notifications (real-time with Pusher)
 
